@@ -21,7 +21,6 @@ interface Appointment {
 }
 
 export default function MeusAgendamentos() {
-  // Componente que lista os agendamentos do cliente autenticado.
   const navigate = useNavigate()
 
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -30,11 +29,13 @@ export default function MeusAgendamentos() {
 
   // Estados do modal
   const [showCancelModal, setShowCancelModal] = useState(false)
-  const [appointmentToCancel, setAppointmentToCancel] =
-    useState<Appointment | null>(null)
+  const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null)
   const [cancelReason, setCancelReason] = useState('')
 
-  // Função que busca os agendamentos do cliente no backend.
+  // Estados auxiliares para hover de botões dinâmicos
+  const [hoveredBtnId, setHoveredBtnId] = useState<string | null>(null)
+  const [hoveredModalBtn, setHoveredModalBtn] = useState<'confirm' | 'close' | null>(null)
+
   async function fetchAppointments() {
     try {
       setLoading(true)
@@ -52,7 +53,6 @@ export default function MeusAgendamentos() {
     fetchAppointments()
   }, [])
 
-  // Função que cancela um agendamento existente.
   async function handleCancel() {
     if (!appointmentToCancel) return
 
@@ -86,147 +86,234 @@ export default function MeusAgendamentos() {
     }
   }
 
-  // Função que faz logout do cliente
-  function handleLogout() {
-    localStorage.removeItem('token')
-    localStorage.removeItem('user')
-    navigate('/login')
+  // Função auxiliar para formatar a data de YYYY-MM-DD para DD/MM/YYYY sem problemas de fuso horário
+  const formatDateBR = (dateString: string) => {
+    if (!dateString) return '-'
+    const parts = dateString.split('-')
+    if (parts.length !== 3) return dateString // Retorna o original se não estiver no padrão esperado
+    return `${parts[2]}/${parts[1]}/${parts[0]}`
+  }
+
+  /* ==========================================================
+     ESTILOS PADRONIZADOS COM OS TOKENS DO PAINEL
+     ========================================================== */
+  const cardStyle = {
+    padding: 20,
+    backgroundColor: 'var(--bg)',
+    borderRadius: 8,
+    border: '1px solid var(--border)',
+    color: 'var(--text-h)',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    gap: 8,
+    position: 'relative' as const
+  }
+
+  const inputControlStyle = {
+    padding: '0.6rem 0.8rem',
+    backgroundColor: 'var(--bg)',
+    color: 'var(--text-h)',
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    outline: 'none',
+    fontSize: '0.9rem',
+    fontFamily: 'inherit'
+  }
+
+  const getStatusBadgeStyle = (status: string) => {
+    let bg = 'rgba(128, 128, 128, 0.15)'
+    let color = '#888'
+
+    if (status === 'scheduled') {
+      bg = 'rgba(46, 125, 50, 0.15)'
+      color = '#2e7d32'
+    } else if (status === 'completed') {
+      bg = 'rgba(21, 101, 192, 0.15)'
+      color = '#1565c0'
+    } else if (status === 'cancelled') {
+      bg = 'rgba(198, 40, 40, 0.15)'
+      color = '#c62828'
+    }
+
+    return {
+      padding: '4px 10px',
+      borderRadius: 4,
+      fontSize: '0.8rem',
+      fontWeight: 600,
+      textTransform: 'uppercase' as const,
+      backgroundColor: bg,
+      color: color,
+      display: 'inline-block',
+      width: 'fit-content'
+    }
   }
 
   return (
-    <div className="container">
-      <h2 style={{ marginBottom: '2rem' }}>Meus agendamentos</h2>
+    <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto', color: 'var(--text-h)', marginBottom: 60 }}>
+      <h2 style={{ marginBottom: '2rem', fontWeight: 500, textAlign: 'center' }}>Meus agendamentos</h2>
 
       {loading ? (
-        <p>Carregando agendamentos...</p>
+        <p style={{ textAlign: 'center', opacity: 0.7 }}>Carregando agendamentos...</p>
       ) : appointments.length === 0 ? (
-        <p>Nenhum agendamento encontrado.</p>
+        <p style={{ textAlign: 'center', opacity: 0.7 }}>Nenhum agendamento encontrado.</p>
       ) : null}
 
-      <div className="grid">
+      {/* Grade configurada com minmax(280px, 1fr) para ficarem lado a lado e responsivos */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
+        gap: 20
+      }}>
         {appointments.map((a) => (
-          <div
-            key={a.id}
-            className="card"
-          >
-            <p><strong>Data:</strong> {a.date}</p>
-
-            <p><strong>Hora:</strong> {a.start_time}</p>
-
-            <p>
-              <strong>Cliente:</strong>{' '}
-              {a.user_name ?? a.client_name ?? a.client_id}
-            </p>
-
-            <p><strong>Serviços:</strong></p>
-
-            {a.services && a.services.length > 0 ? (
-              <ul>
-                {a.services.map((s) => (
-                  <li key={s.id}>
-                    {s.name} - R$ {s.price}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p>Nenhum serviço</p>
-            )}
-
-            <p>
-              <strong>Status:</strong>{' '}
-              <span
-                style={{
-                  padding: '4px 8px',
-                  borderRadius: 4,
-                  backgroundColor:
-                    a.status === 'scheduled'
-                      ? '#d4edda'
-                      : a.status === 'completed'
-                      ? '#cce5ff'
-                      : a.status === 'cancelled'
-                      ? '#f8d7da'
-                      : '#e2e3e5',
-                  color:
-                    a.status === 'scheduled'
-                      ? '#155724'
-                      : a.status === 'completed'
-                      ? '#004085'
-                      : a.status === 'cancelled'
-                      ? '#721c24'
-                      : '#383d41',
-                }}
-              >
+          <div key={a.id} style={cardStyle}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+              <span style={getStatusBadgeStyle(a.status)}>
                 {a.status === 'scheduled' && 'Agendado'}
                 {a.status === 'completed' && 'Concluído'}
                 {a.status === 'cancelled' && 'Cancelado'}
                 {a.status === 'blocked' && 'Bloqueado'}
               </span>
+              <span style={{ fontSize: '1.1rem', fontWeight: 600 }}>
+                {a.total_price !== undefined ? `R$ ${a.total_price.toFixed(2)}` : '-'}
+              </span>
+            </div>
+
+            {/* Aplicada a formatação da data brasileira aqui */}
+            <p style={{ margin: 0 }}><strong style={{ opacity: 0.8 }}>Data:</strong> {formatDateBR(a.date)}</p>
+            <p style={{ margin: 0 }}><strong style={{ opacity: 0.8 }}>Hora:</strong> {a.start_time}</p>
+            <p style={{ margin: 0 }}>
+              <strong style={{ opacity: 0.8 }}>Cliente:</strong> {a.user_name ?? a.client_name ?? a.client_id}
             </p>
 
-            <p>
-              <strong>Total:</strong>{' '}
-              {a.total_price !== undefined
-                ? `R$ ${a.total_price.toFixed(2)}`
-                : '-'}
-            </p>
+            <div style={{ marginTop: 5, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+              <strong style={{ opacity: 0.8, fontSize: '0.85rem', display: 'block', marginBottom: 5 }}>Serviços:</strong>
+              {a.services && a.services.length > 0 ? (
+                <ul style={{ margin: 0, paddingLeft: 20, fontSize: '0.9rem', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {a.services.map((s) => (
+                    <li key={s.id} style={{ opacity: 0.9 }}>
+                      {s.name} — <span style={{ fontWeight: 500 }}>R$ {s.price.toFixed(2)}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.5 }}>Nenhum serviço</p>
+              )}
+            </div>
 
             {a.status === 'scheduled' && (
               <button
-                className="btn btn-danger"
-                style={{ marginTop: '1rem' }}
                 disabled={cancelingId === a.id}
+                onMouseEnter={() => setHoveredBtnId(a.id)}
+                onMouseLeave={() => setHoveredBtnId(null)}
                 onClick={() => {
                   setAppointmentToCancel(a)
                   setCancelReason('')
                   setShowCancelModal(true)
                 }}
+                style={{
+                  marginTop: 'auto', // Faz o botão grudar no final do card caso os serviços tenham tamanhos diferentes
+                  padding: '0.5rem 1rem',
+                  border: '1px solid rgba(198, 40, 40, 0.3)',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  fontSize: '0.85rem',
+                  transition: 'all 0.2s',
+                  width: '100%',
+                  opacity: cancelingId === a.id ? 0.6 : 1,
+                  backgroundColor: hoveredBtnId === a.id ? '#c62828' : 'rgba(198, 40, 40, 0.1)',
+                  color: hoveredBtnId === a.id ? '#fff' : '#c62828',
+                }}
               >
-                {cancelingId === a.id
-                  ? 'Cancelando...'
-                  : 'Cancelar agendamento'}
+                {cancelingId === a.id ? 'Cancelando...' : 'Cancelar agendamento'}
               </button>
             )}
           </div>
         ))}
       </div>
 
+      {/* Modal de Cancelamento */}
       {showCancelModal && (
-        <div className="modal">
-          <div className="modal-content">
-            <h3>Cancelar agendamento</h3>
-
-            <p>Informe o motivo do cancelamento:</p>
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          padding: 20
+        }}>
+          <div style={{
+            backgroundColor: 'var(--bg)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            padding: 24,
+            width: '100%',
+            maxWidth: 450,
+            boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+            color: 'var(--text-h)'
+          }}>
+            <h3 style={{ margin: '0 0 10px 0', fontWeight: 500, fontSize: '1.2rem' }}>Cancelar agendamento</h3>
+            <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', opacity: 0.8 }}>
+              Por favor, informe detalhadamente o motivo do cancelamento abaixo:
+            </p>
 
             <textarea
               rows={4}
-              style={{ width: '100%', marginBottom: '1rem' }}
+              style={{ ...inputControlStyle, width: '100%', marginBottom: 20, resize: 'none' }}
               value={cancelReason}
+              placeholder="Digite aqui o motivo..."
               onChange={(e) => setCancelReason(e.target.value)}
             />
 
-            <div
-              style={{
-                display: 'flex',
-                gap: '1rem',
-                justifyContent: 'flex-end',
-              }}
-            >
+            <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
               <button
-                className="btn"
-                onClick={handleCancel}
-              >
-                Confirmar
-              </button>
-
-              <button
-                className="btn secondary"
                 onClick={() => {
                   setShowCancelModal(false)
                   setAppointmentToCancel(null)
                   setCancelReason('')
                 }}
+                onMouseEnter={() => setHoveredModalBtn('close')}
+                onMouseLeave={() => setHoveredModalBtn(null)}
+                style={{
+                  padding: '0.5rem 1.2rem',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-h)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  fontSize: '0.9rem',
+                  transition: 'background-color 0.2s',
+                  backgroundColor: hoveredModalBtn === 'close' ? 'rgba(255,255,255,0.05)' : 'transparent'
+                }}
               >
                 Fechar
+              </button>
+
+              <button
+                onClick={handleCancel}
+                onMouseEnter={() => setHoveredModalBtn('confirm')}
+                onMouseLeave={() => setHoveredModalBtn(null)}
+                style={{
+                  padding: '0.5rem 1.2rem',
+                  backgroundColor: 'var(--accent)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  fontSize: '0.9rem',
+                  transition: 'opacity 0.2s',
+                  opacity: hoveredModalBtn === 'confirm' ? 0.85 : 1
+                }}
+              >
+                Confirmar Cancelamento
               </button>
             </div>
           </div>
