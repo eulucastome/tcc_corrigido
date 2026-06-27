@@ -85,7 +85,7 @@ export default function AdminHorarios() {
     try {
       setUpdatingAppointmentId(appointmentId);
       await api.put(`/api/appointments/${appointmentId}`, { status: newStatus });
-      alert("Agendamento atualizado!");
+      alert("Agendamento updated!");
       fetchAppointmentsForDay(selectedDate);
     } catch (err: any) {
       console.error(err);
@@ -259,7 +259,6 @@ export default function AdminHorarios() {
         <>
           <h3 style={{ marginTop: 20, marginBottom: 15 }}>Horários por Dia da Semana</h3>
           
-          {/* AJUSTE NO GRID: grid-rows assegura o esticamento perfeito */}
           <div style={{ 
             display: "grid", 
             gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", 
@@ -282,12 +281,27 @@ export default function AdminHorarios() {
 
                   {editingDay === day.day_of_week ? (
                     /* ==========================================
-                       A: MODO EDIÇÃO
+                       A: MODO EDIÇÃO (ALINHADO COM FLEXBOX)
                        ========================================== */
                     <div>
                       <div style={{ marginBottom: 15 }}>
-                        <label style={{ display: "block", marginBottom: 5 }}>
-                          <input type="checkbox" checked={!!tempData.is_open} onChange={(e) => setTempData({ ...tempData, is_open: e.target.checked })} /> Aberto
+                        {/* MODIFICADO: Estilização do label para alinhar verticalmente */}
+                        <label style={{ 
+                          display: "inline-flex", 
+                          alignItems: "center", 
+                          gap: "8px", 
+                          cursor: "pointer",
+                          fontWeight: "600",
+                          fontSize: 14,
+                          userSelect: "none"
+                        }}>
+                          <input 
+                            type="checkbox" 
+                            checked={!!tempData.is_open} 
+                            onChange={(e) => setTempData({ ...tempData, is_open: e.target.checked })} 
+                            style={{ width: "16px", height: "16px", cursor: "pointer" }}
+                          /> 
+                          Aberto
                         </label>
                       </div>
 
@@ -367,7 +381,6 @@ export default function AdminHorarios() {
                   )}
                 </div>
 
-                {/* BOTÕES ALINHADOS ABAIXO: O margin-top auto joga as ações para o rodapé do card */}
                 <div style={{ marginTop: "auto", pt: 10 }}>
                   {editingDay === day.day_of_week ? (
                     <div style={{ display: "flex", gap: 10 }}>
