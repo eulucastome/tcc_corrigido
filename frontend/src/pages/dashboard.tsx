@@ -25,7 +25,6 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
-  // Componente do dashboard que mostra métricas financeiras e filtros.
   const [searchParams, setSearchParams] = useSearchParams()
   const initialPeriod = searchParams.get('period') || 'monthly'
   const initialStartDate = searchParams.get('startDate') || ''
@@ -40,6 +39,9 @@ export default function Dashboard() {
   const [selectedClient, setSelectedClient] = useState(initialClientId)
   const [allClients, setAllClients] = useState<Array<{ id: string | null; name: string }>>([])
 
+  // Estado auxiliar para gerenciar os efeitos visuais de hover nos botões
+  const [isHovered, setIsHovered] = useState(false)
+
   const applyQueryParams = (params: { period: string; startDate?: string; endDate?: string; selectedClient?: string }) => {
     const next = new URLSearchParams()
     next.set('period', params.period)
@@ -53,7 +55,6 @@ export default function Dashboard() {
     setSearchParams(next, { replace: true })
   }
 
-  // Função que busca os dados do dashboard do backend.
   async function fetchDashboard(overrides: { period?: string; startDate?: string; endDate?: string; selectedClient?: string } = {}) {
     try {
       setLoading(true)
@@ -65,7 +66,6 @@ export default function Dashboard() {
 
       let url = `/api/dashboard/${currentPeriod}`
 
-      // Para período customizado com filtros
       if (currentPeriod === 'custom' && currentStart && currentEnd) {
         url = `/api/dashboard/filter?startDate=${currentStart}&endDate=${currentEnd}`
         if (currentClient) url += `&client_id=${currentClient}`
@@ -74,7 +74,6 @@ export default function Dashboard() {
       const res = await api.get(url)
       setData(res.data)
 
-      // Extrai lista de clientes
       if (res.data.by_client) {
         const clients = res.data.by_client.map((c: any) => ({ id: c.client_id || null, name: c.client }))
         setAllClients(clients)
@@ -95,7 +94,6 @@ export default function Dashboard() {
     }
   }, [period])
 
-  // Função que aplica filtros personalizados no dashboard.
   const handleFilter = () => {
     if (period === 'custom' && startDate && endDate) {
       applyQueryParams({ period, startDate, endDate, selectedClient })
@@ -105,218 +103,238 @@ export default function Dashboard() {
     }
   }
 
+  /* ==========================================================
+     ESTILOS PADRONIZADOS COM OS TOKENS DA NAVBAR / PAINEL
+     ========================================================== */
+  const panelStyle = {
+    marginBottom: 30,
+    padding: 20,
+    backgroundColor: 'var(--bg)',
+    borderRadius: 8,
+    border: '1px solid var(--border)',
+    color: 'var(--text-h)'
+  }
+
+  const inputControlStyle = {
+    padding: '0.4rem 0.8rem',
+    backgroundColor: 'var(--bg)',
+    color: 'var(--text-h)',
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    outline: 'none',
+    fontSize: '0.9rem',
+    fontFamily: 'inherit'
+  }
+
+  const cardStyle = {
+    padding: 20,
+    backgroundColor: 'var(--bg)',
+    borderRadius: 8,
+    border: '1px solid var(--border)',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    justifyContent: 'center'
+  }
+
+  const tableHeaderStyle = {
+    padding: 12, 
+    textAlign: 'left' as const, 
+    borderBottom: '2px solid var(--border)',
+    fontWeight: 500,
+    fontSize: '0.9rem'
+  }
+
+  const tableCellStyle = {
+    padding: 12, 
+    borderBottom: '1px solid var(--border)',
+    fontSize: '0.9rem'
+  }
+
   return (
-    <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto' }}>
-      <h1>📊 Dashboard - Relatório Financeiro</h1>
+    <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto', color: 'var(--text-h)', marginBottom: 60 }}>
+      <h1 style={{ fontWeight: 500, marginBottom: 30, textAlign: 'center' }}>📊 Dashboard - Relatório Financeiro</h1>
 
-      {/* Filtros */}
-      <div style={{
-        marginBottom: 30,
-        padding: 20,
-        backgroundColor: '#f5f5f5',
-        borderRadius: 8,
-        border: '1px solid #ddd'
-      }}>
-        <h3>Filtros</h3>
+      {/* Seção de Filtros */}
+      <div style={{ ...panelStyle, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <h3 style={{ margin: '0 0 20px 0', fontWeight: 500, fontSize: '1.1rem', width: '100%', textAlign: 'center' }}>Filtros</h3>
 
-        <div style={{ marginBottom: 15 }}>
-          <label style={{ marginRight: 10 }}>
-            <input
-              type="radio"
-              value="weekly"
-              checked={period === 'weekly'}
-              onChange={() => {
-                setPeriod('weekly')
-                applyQueryParams({ period: 'weekly' })
+        {/* Ajustado justifyContent e flexWrap para organizar perfeitamente os botões de rádio */}
+        <div style={{ 
+          marginBottom: 15, 
+          display: 'flex', 
+          flexWrap: 'wrap', 
+          justifyContent: 'center', 
+          gap: '20px', 
+          width: '100%' 
+        }}>
+          {['weekly', 'monthly', 'yearly', 'custom'].map((p) => (
+            <label 
+              key={p} 
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: 8, 
+                cursor: 'pointer', 
+                fontSize: '0.9rem',
+                whiteSpace: 'nowrap', // Impede que o texto "Período customizado" quebre em duas linhas
+                userSelect: 'none'
               }}
-            />
-            Semanal
-          </label>
-          <label style={{ marginRight: 10 }}>
-            <input
-              type="radio"
-              value="monthly"
-              checked={period === 'monthly'}
-              onChange={() => {
-                setPeriod('monthly')
-                applyQueryParams({ period: 'monthly' })
-              }}
-            />
-            Mensal
-          </label>
-          <label style={{ marginRight: 10 }}>
-            <input
-              type="radio"
-              value="yearly"
-              checked={period === 'yearly'}
-              onChange={() => {
-                setPeriod('yearly')
-                applyQueryParams({ period: 'yearly' })
-              }}
-            />
-            Anual
-          </label>
-          <label>
-            <input
-              type="radio"
-              value="custom"
-              checked={period === 'custom'}
-              onChange={() => {
-                setPeriod('custom')
-                applyQueryParams({ period: 'custom' })
-              }}
-            />
-            Período customizado
-          </label>
+            >
+              <input
+                type="radio"
+                value={p}
+                checked={period === p}
+                style={{ 
+                  accentColor: 'var(--accent)', 
+                  width: 16, 
+                  height: 16, 
+                  margin: 0, 
+                  cursor: 'pointer' 
+                }}
+                onChange={() => {
+                  setPeriod(p)
+                  applyQueryParams({ period: p })
+                }}
+              />
+              {p === 'weekly' && 'Semanal'}
+              {p === 'monthly' && 'Mensal'}
+              {p === 'yearly' && 'Anual'}
+              {p === 'custom' && 'Período customizado'}
+            </label>
+          ))}
         </div>
 
+        {/* Bloco de Filtros Customizados Centralizado */}
         {period === 'custom' && (
-          <div style={{ marginBottom: 15 }}>
-            <div style={{ marginBottom: 10 }}>
-              <label>
-                De:{' '}
-                <input
-                  type="date"
-                  value={startDate}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setStartDate(value)
-                  }}
-                />
-              </label>
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column', 
+            gap: 12, 
+            width: '100%',
+            maxWidth: 400, 
+            margin: '20px auto 0 auto',
+            alignItems: 'center'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+              <span style={{ minWidth: 65, fontSize: '0.9rem', textAlign: 'right' }}>De:</span>
+              <input
+                type="date"
+                value={startDate}
+                style={{ ...inputControlStyle, flex: 1 }}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
             </div>
-            <div style={{ marginBottom: 10 }}>
-              <label>
-                Até:{' '}
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setEndDate(value)
-                  }}
-                />
-              </label>
+            
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+              <span style={{ minWidth: 65, fontSize: '0.9rem', textAlign: 'right' }}>Até:</span>
+              <input
+                type="date"
+                value={endDate}
+                style={{ ...inputControlStyle, flex: 1 }}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
             </div>
-            <div style={{ marginBottom: 10 }}>
-              <label>
-                Cliente:{' '}
-                <select
-                  value={selectedClient}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setSelectedClient(value)
-                  }}
-                >
-                  <option value="">Todos</option>
-                  {allClients.map((client) => (
-                    <option key={client.id ?? client.name} value={client.id ?? ''}>
-                      {client.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%' }}>
+              <span style={{ minWidth: 65, fontSize: '0.9rem', textAlign: 'right' }}>Cliente:</span>
+              <select
+                value={selectedClient}
+                style={{ ...inputControlStyle, cursor: 'pointer', flex: 1 }}
+                onChange={(e) => setSelectedClient(e.target.value)}
+              >
+                <option value="">Todos</option>
+                {allClients.map((client) => (
+                  <option key={client.id ?? client.name} value={client.id ?? ''}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
             </div>
-            <button onClick={handleFilter} disabled={loading}>
+
+            <button 
+              onClick={handleFilter} 
+              disabled={loading}
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              style={{
+                padding: '0.5rem 2.5rem',
+                backgroundColor: 'var(--accent)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer',
+                fontWeight: 500,
+                fontSize: '0.9rem',
+                transition: 'opacity 0.2s',
+                opacity: isHovered ? 0.85 : 1,
+                marginTop: 10,
+                width: 'auto'
+              }}
+            >
               {loading ? 'Carregando...' : 'Filtrar'}
             </button>
           </div>
         )}
       </div>
 
-      {/* Cards principais */}
+      {/* Cards Principais e Métricas */}
       {data && (
         <>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
             gap: 15,
             marginBottom: 30
           }}>
-            <div style={{
-              padding: 20,
-              backgroundColor: '#e8f5e9',
-              borderRadius: 8,
-              border: '1px solid #4caf50'
-            }}>
-              <p style={{ margin: 0, color: '#666', fontSize: 12 }}>Receita Total</p>
-              <h2 style={{ margin: '10px 0 0 0', color: '#2e7d32' }}>
+            <div style={{ ...cardStyle, borderLeft: '4px solid #2e7d32' }}>
+              <p style={{ margin: 0, opacity: 0.6, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Receita Total</p>
+              <h2 style={{ margin: '8px 0 0 0', fontWeight: 600, color: 'var(--text-h)' }}>
                 R$ {data.total_revenue.toFixed(2)}
               </h2>
             </div>
 
-            <div style={{
-              padding: 20,
-              backgroundColor: '#e3f2fd',
-              borderRadius: 8,
-              border: '1px solid #2196f3'
-            }}>
-              <p style={{ margin: 0, color: '#666', fontSize: 12 }}>Total de Atendimentos</p>
-              <h2 style={{ margin: '10px 0 0 0', color: '#1565c0' }}>
+            <div style={{ ...cardStyle, borderLeft: '4px solid #1565c0' }}>
+              <p style={{ margin: 0, opacity: 0.6, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total de Atendimentos</p>
+              <h2 style={{ margin: '8px 0 0 0', fontWeight: 600, color: 'var(--text-h)' }}>
                 {data.total_appointments}
               </h2>
             </div>
 
-            <div style={{
-              padding: 20,
-              backgroundColor: '#fff3e0',
-              borderRadius: 8,
-              border: '1px solid #ff9800'
-            }}>
-              <p style={{ margin: 0, color: '#666', fontSize: 12 }}>Ticket Médio</p>
-              <h2 style={{ margin: '10px 0 0 0', color: '#e65100' }}>
+            <div style={{ ...cardStyle, borderLeft: '4px solid #e65100' }}>
+              <p style={{ margin: 0, opacity: 0.6, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Ticket Médio</p>
+              <h2 style={{ margin: '8px 0 0 0', fontWeight: 600, color: 'var(--text-h)' }}>
                 R$ {data.average_ticket.toFixed(2)}
               </h2>
             </div>
 
-            <div style={{
-              padding: 20,
-              backgroundColor: '#fce4ec',
-              borderRadius: 8,
-              border: '1px solid #e91e63'
-            }}>
-              <p style={{ margin: 0, color: '#666', fontSize: 12 }}>Cancelamentos</p>
-              <h2 style={{ margin: '10px 0 0 0', color: '#c2185b' }}>
+            <div style={{ ...cardStyle, borderLeft: '4px solid #c2185b' }}>
+              <p style={{ margin: 0, opacity: 0.6, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cancelamentos</p>
+              <h2 style={{ margin: '8px 0 0 0', fontWeight: 600, color: 'var(--text-h)' }}>
                 {data.cancelled_count}
               </h2>
             </div>
           </div>
 
-          {/* Tabela de receita por cliente */}
+          {/* Tabela de Receita por Cliente */}
           {data.by_client && data.by_client.length > 0 && (
-            <div style={{
-              marginBottom: 30,
-              padding: 20,
-              backgroundColor: '#fff',
-              borderRadius: 8,
-              border: '1px solid #ddd'
-            }}>
-              <h3>💰 Receita por Cliente</h3>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse'
-              }}>
+            <div style={panelStyle}>
+              <h3 style={{ margin: '0 0 15px 0', fontWeight: 500 }}>💰 Receita por Cliente</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-                      Cliente
-                    </th>
-                    <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #ddd' }}>
-                      Receita
-                    </th>
-                    <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #ddd' }}>
-                      Atendimentos
-                    </th>
+                  <tr>
+                    <th style={tableHeaderStyle}>Cliente</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Receita</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Atendimentos</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.by_client.map((client: any, idx: number) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: 10 }}>{client.client}</td>
-                      <td style={{ padding: 10, textAlign: 'right' }}>
+                    <tr key={idx}>
+                      <td style={tableCellStyle}>{client.client}</td>
+                      <td style={{ ...tableCellStyle, textAlign: 'right', fontWeight: 500 }}>
                         R$ {client.revenue.toFixed(2)}
                       </td>
-                      <td style={{ padding: 10, textAlign: 'right' }}>
+                      <td style={{ ...tableCellStyle, textAlign: 'right', opacity: 0.8 }}>
                         {client.appointments}
                       </td>
                     </tr>
@@ -326,41 +344,24 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Serviços mais vendidos */}
+          {/* Serviços Mais Vendidos */}
           {data.top_services && data.top_services.length > 0 && (
-            <div style={{
-              marginBottom: 30,
-              padding: 20,
-              backgroundColor: '#fff',
-              borderRadius: 8,
-              border: '1px solid #ddd'
-            }}>
-              <h3>🏆 Serviços Mais Vendidos</h3>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse'
-              }}>
+            <div style={panelStyle}>
+              <h3 style={{ margin: '0 0 15px 0', fontWeight: 500 }}>🏆 Serviços Mais Vendidos</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-                      Serviço
-                    </th>
-                    <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #ddd' }}>
-                      Quantidade
-                    </th>
-                    <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #ddd' }}>
-                      Receita
-                    </th>
+                  <tr>
+                    <th style={tableHeaderStyle}>Serviço</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Quantidade</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Receita</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.top_services.map((service: any, idx: number) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: 10 }}>{service.name}</td>
-                      <td style={{ padding: 10, textAlign: 'right' }}>
-                        {service.quantity}
-                      </td>
-                      <td style={{ padding: 10, textAlign: 'right' }}>
+                    <tr key={idx}>
+                      <td style={tableCellStyle}>{service.name}</td>
+                      <td style={{ ...tableCellStyle, textAlign: 'right', opacity: 0.8 }}>{service.quantity}</td>
+                      <td style={{ ...tableCellStyle, textAlign: 'right', fontWeight: 500 }}>
                         R$ {parseFloat(service.revenue).toFixed(2)}
                       </td>
                     </tr>
@@ -370,44 +371,28 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Receita por dia */}
+          {/* Receita por Dia */}
           {data.by_day && data.by_day.length > 0 && (
-            <div style={{
-              padding: 20,
-              backgroundColor: '#fff',
-              borderRadius: 8,
-              border: '1px solid #ddd'
-            }}>
-              <h3>📈 Receita por Dia</h3>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse'
-              }}>
+            <div style={panelStyle}>
+              <h3 style={{ margin: '0 0 15px 0', fontWeight: 500 }}>📈 Receita por Dia</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #ddd' }}>
-                      Data
-                    </th>
-                    <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #ddd' }}>
-                      Receita
-                    </th>
-                    <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #ddd' }}>
-                      Atendimentos
-                    </th>
+                  <tr>
+                    <th style={tableHeaderStyle}>Data</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Receita</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Atendimentos</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.by_day.map((day: any, idx: number) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: 10 }}>
+                    <tr key={idx}>
+                      <td style={tableCellStyle}>
                         {new Date(day.date + 'T12:00:00').toLocaleDateString('pt-BR')}
                       </td>
-                      <td style={{ padding: 10, textAlign: 'right' }}>
+                      <td style={{ ...tableCellStyle, textAlign: 'right', fontWeight: 500 }}>
                         R$ {day.revenue.toFixed(2)}
                       </td>
-                      <td style={{ padding: 10, textAlign: 'right' }}>
-                        {day.appointments}
-                      </td>
+                      <td style={{ ...tableCellStyle, textAlign: 'right', opacity: 0.8 }}>{day.appointments}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -415,40 +400,41 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* Lista de agendamentos e serviços quando filtra por cliente */}
+          {/* Lista Detalhada de Agendamentos (Filtro Customizado por Cliente) */}
           {period === 'custom' && selectedClient && data.appointments && data.appointments.length > 0 && (
-            <div style={{
-              marginTop: 30,
-              padding: 20,
-              backgroundColor: '#fff',
-              borderRadius: 8,
-              border: '1px solid #ddd'
-            }}>
-              <h3>📋 Agendamentos do cliente</h3>
-              <table style={{
-                width: '100%',
-                borderCollapse: 'collapse'
-              }}>
+            <div style={panelStyle}>
+              <h3 style={{ margin: '0 0 15px 0', fontWeight: 500 }}>📋 Agendamentos do Cliente</h3>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ backgroundColor: '#f5f5f5' }}>
-                    <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #ddd' }}>Data</th>
-                    <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #ddd' }}>Horário</th>
-                    <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #ddd' }}>Status</th>
-                    <th style={{ padding: 10, textAlign: 'right', borderBottom: '1px solid #ddd' }}>Total</th>
-                    <th style={{ padding: 10, textAlign: 'left', borderBottom: '1px solid #ddd' }}>Serviços</th>
+                  <tr>
+                    <th style={tableHeaderStyle}>Data</th>
+                    <th style={tableHeaderStyle}>Horário</th>
+                    <th style={tableHeaderStyle}>Status</th>
+                    <th style={{ ...tableHeaderStyle, textAlign: 'right' }}>Total</th>
+                    <th style={tableHeaderStyle}>Serviços</th>
                   </tr>
                 </thead>
                 <tbody>
                   {data.appointments.map((appt) => (
-                    <tr key={appt.id} style={{ borderBottom: '1px solid #eee' }}>
-                      <td style={{ padding: 10 }}>{new Date(appt.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
-                      <td style={{ padding: 10 }}>{appt.start_time} - {appt.end_time}</td>
-                      <td style={{ padding: 10 }}>{appt.status}</td>
-                      <td style={{ padding: 10, textAlign: 'right' }}>R$ {parseFloat(String(appt.total_price)).toFixed(2)}</td>
-                      <td style={{ padding: 10 }}>
+                    <tr key={appt.id}>
+                      <td style={tableCellStyle}>{new Date(appt.date + 'T12:00:00').toLocaleDateString('pt-BR')}</td>
+                      <td style={tableCellStyle}>{appt.start_time} - {appt.end_time}</td>
+                      <td style={tableCellStyle}>
+                        <span style={{
+                          padding: '2px 6px', borderRadius: 4, fontSize: 12, fontWeight: 500,
+                          backgroundColor: appt.status === 'confirmed' || appt.status === 'completed' ? 'rgba(46, 125, 50, 0.15)' : 'rgba(198, 40, 40, 0.15)',
+                          color: appt.status === 'confirmed' || appt.status === 'completed' ? '#2e7d32' : '#c62828'
+                        }}>
+                          {appt.status}
+                        </span>
+                      </td>
+                      <td style={{ ...tableCellStyle, textAlign: 'right', fontWeight: 500 }}>
+                        R$ {parseFloat(String(appt.total_price)).toFixed(2)}
+                      </td>
+                      <td style={tableCellStyle}>
                         {appt.services.map((service, idx) => (
-                          <div key={idx} style={{ marginBottom: 4 }}>
-                            {service.name} - R$ {parseFloat(String(service.price)).toFixed(2)}
+                          <div key={idx} style={{ marginBottom: 4, fontSize: '0.85rem', opacity: 0.9 }}>
+                            • {service.name} (R$ {parseFloat(String(service.price)).toFixed(2)})
                           </div>
                         ))}
                       </td>

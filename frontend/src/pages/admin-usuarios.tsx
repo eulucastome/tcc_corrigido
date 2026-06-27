@@ -11,7 +11,6 @@ interface User {
 }
 
 export default function AdminUsuarios() {
-  // Componente administrativo que lista, edita e exclui usuários.
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
@@ -19,7 +18,9 @@ export default function AdminUsuarios() {
   const [editingUser, setEditingUser] = useState<User | null>(null)
   const [search, setSearch] = useState('')  
 
-  // Função que busca a lista de usuários do backend.
+  // Estado para capturar o ID do botão atualmente em hover
+  const [hoveredButtonId, setHoveredButtonId] = useState<string | null>(null)
+
   async function fetchUsers() {
     try {
       setLoading(true)
@@ -37,7 +38,6 @@ export default function AdminUsuarios() {
     fetchUsers()
   }, [])
 
-  // Função que atualiza os dados de um usuário existente.
   async function handleUpdate() {
     if (!editingUser) return
 
@@ -69,7 +69,6 @@ export default function AdminUsuarios() {
     }
   }
 
-  // Função que exclui um usuário existente.
   async function handleDelete(id: string) {
     if (!window.confirm('Deseja realmente excluir este usuário?')) return
 
@@ -86,106 +85,196 @@ export default function AdminUsuarios() {
     }
   }
 
-  //Funçao que filtra os usuarios, utilizando o estado de busca (search) para encontrar usuários por nome, email ou telefone.
   const filteredUsers = users.filter((user) =>
     user.name.toLowerCase().includes(search.toLowerCase()) ||
     user.email.toLowerCase().includes(search.toLowerCase())
   )
 
+  /* ==========================================================
+     PADRONIZAÇÃO CSS (Alinhado com a Navbar e Variáveis)
+     ========================================================== */
+  const containerPanelStyle = {
+    padding: 20, 
+    backgroundColor: 'var(--bg)', 
+    borderRadius: 8, 
+    border: '1px solid var(--border)',
+    color: 'var(--text-h)',
+    marginBottom: 30
+  }
+
+  const inputStyle = {
+    width: '100%', 
+    marginBottom: 15, 
+    padding: '0.5rem 1rem',
+    backgroundColor: 'var(--bg)',
+    color: 'var(--text-h)',
+    border: '1px solid var(--border)',
+    borderRadius: '4px',
+    fontSize: '0.9rem',
+    boxSizing: 'border-box' as const,
+    outline: 'none',
+    transition: 'opacity 0.2s',
+  }
+
+  const buttonBase = {
+    padding: '0.5rem 1rem',
+    borderRadius: '4px',
+    fontSize: '0.9rem',
+    border: 'none',
+    cursor: 'pointer',
+    fontWeight: '500' as const,
+    transition: 'opacity 0.2s',
+  }
+
+  const getPrimaryStyle = (id: string) => ({
+    ...buttonBase,
+    backgroundColor: 'var(--accent)',
+    color: '#fff',
+    opacity: hoveredButtonId === id ? 0.85 : 1
+  })
+
+  const getCancelStyle = (id: string) => ({
+    ...buttonBase,
+    backgroundColor: 'var(--border)',
+    color: 'var(--text-h)',
+    opacity: hoveredButtonId === id ? 0.8 : 1
+  })
+
+  const getDeleteStyle = (id: string) => ({
+    ...buttonBase,
+    backgroundColor: '#d32f2f',
+    color: '#fff',
+    opacity: hoveredButtonId === id ? 0.85 : 1
+  })
+
   return (
-    <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto', marginBottom: 40 }}>
-      <h1>👥 Administração de Usuários</h1>
+    <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto', color: 'var(--text-h)', marginBottom: 80 }}>
+      <h1 style={{ textAlign: 'center', fontWeight: 500, marginBottom: 30 }}>👥 Administração de Usuários</h1>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
-      {message && <p style={{ color: 'green' }}>{message}</p>}
+      {error && <p style={{ color: '#d32f2f', textAlign: 'center', fontSize: '0.9rem' }}>{error}</p>}
+      {message && <p style={{ color: 'green', textAlign: 'center', fontSize: '0.9rem' }}>{message}</p>}
 
-      <div style={{ marginBottom: 30 }}>
-        {editingUser && (
-          <div style={{ padding: 20, background: '#fff', borderRadius: 8, border: '1px solid #ddd' }}>
-            <h2>Editar usuário</h2>
+      {/* Bloco de Edição (Só aparece se houver usuário selecionado) */}
+      {editingUser && (
+        <div style={containerPanelStyle}>
+          <h2 style={{ fontWeight: 500, marginBottom: 20 }}>Editar usuário</h2>
+          
+          <input
+            placeholder="Nome"
+            value={editingUser.name}
+            onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+            style={inputStyle}
+          />
+          <input
+            placeholder="E-mail"
+            value={editingUser.email}
+            onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+            style={inputStyle}
+          />
+          <input
+            placeholder="Telefone"
+            value={editingUser.phone || ''}
+            onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+            style={inputStyle}
+          />
+          
+          <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginBottom: 20, cursor: 'pointer', userSelect: 'none' }}>
             <input
-              placeholder="Nome"
-              value={editingUser.name}
-              onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-              style={{ width: '100%', marginBottom: 10, padding: 10 }}
+              type="checkbox"
+              checked={!!editingUser.active}
+              onChange={(e) => setEditingUser({ ...editingUser, active: e.target.checked })}
+              style={{ width: 16, height: 16, cursor: 'pointer', accentColor: 'var(--accent)' }}
             />
-            <input
-              placeholder="E-mail"
-              value={editingUser.email}
-              onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-              style={{ width: '100%', marginBottom: 10, padding: 10 }}
-            />
-            <input
-              placeholder="Telefone"
-              value={editingUser.phone || ''}
-              onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
-              style={{ width: '100%', marginBottom: 10, padding: 10 }}
-            />
-            <label style={{ display: 'block', marginBottom: 10 }}>
-              <input
-                type="checkbox"
-                checked={!!editingUser.active}
-                onChange={(e) => setEditingUser({ ...editingUser, active: e.target.checked })}
-              />{' '}
-              Conta ativa
-            </label>
+            Conta ativa
+          </label>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button
               onClick={handleUpdate}
               disabled={loading}
-              style={{ width: '100%', padding: 12, background: '#4caf50', color: '#fff', border: 'none', borderRadius: 4 }}
+              style={getPrimaryStyle('btn-save')}
+              onMouseEnter={() => setHoveredButtonId('btn-save')}
+              onMouseLeave={() => setHoveredButtonId(null)}
             >
               {loading ? 'Salvando...' : 'Salvar alterações'}
             </button>
             <button
               onClick={() => setEditingUser(null)}
               disabled={loading}
-              style={{ width: '100%', padding: 12, marginTop: 10, background: '#e0e0e0', border: 'none', borderRadius: 4 }}
+              style={getCancelStyle('btn-cancel')}
+              onMouseEnter={() => setHoveredButtonId('btn-cancel')}
+              onMouseLeave={() => setHoveredButtonId(null)}
             >
               Cancelar edição
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      <div style={{ padding: 20, background: '#fff', borderRadius: 8, border: '1px solid #ddd' }}>
-        <h2>Usuários cadastrados</h2>
+      {/* Bloco da Listagem Principal */}
+      <div style={containerPanelStyle}>
+        <h2 style={{ fontWeight: 500, marginBottom: 20 }}>Usuários cadastrados</h2>
+        
         <input
           type="text"
-          placeholder="Pesquisar por nome, email ou telefone..."
+          placeholder="🔍 Pesquisar por nome, email ou telefone..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          style={{
-          width: '100%',
-          padding: 10,
-          marginBottom: 20,
-          border: '1px solid #ccc',
-          borderRadius: 4}}
-          />
-        {loading && <p>Carregando...</p>}
-        {!loading && filteredUsers.length === 0 && <p>Nenhum usuário encontrado.</p>}
+          style={inputStyle}
+        />
+
+        {loading && <p style={{ textAlign: 'center', opacity: 0.6 }}>Carregando...</p>}
+        {!loading && filteredUsers.length === 0 && <p style={{ textAlign: 'center', opacity: 0.6, fontStyle: 'italic' }}>Nenhum usuário encontrado.</p>}
+        
         {!loading && filteredUsers.length > 0 && (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10 }}>
             <thead>
-              <tr style={{ background: '#f5f5f5' }}>
-                <th style={{ padding: 10, textAlign: 'left' }}>Nome</th>
-                <th style={{ padding: 10, textAlign: 'left' }}>E-mail</th>
-                <th style={{ padding: 10, textAlign: 'left' }}>Telefone</th>
-                <th style={{ padding: 10, textAlign: 'left' }}>Role</th>
-                <th style={{ padding: 10, textAlign: 'center' }}>Ativo</th>
-                <th style={{ padding: 10, textAlign: 'center' }}>Ações</th>
+              <tr style={{ background: 'var(--bg)', borderBottom: '2px solid var(--border)' }}>
+                <th style={{ padding: 12, textAlign: 'left', fontWeight: 500 }}>Nome</th>
+                <th style={{ padding: 12, textAlign: 'left', fontWeight: 500 }}>E-mail</th>
+                <th style={{ padding: 12, textAlign: 'left', fontWeight: 500 }}>Telefone</th>
+                <th style={{ padding: 12, textAlign: 'left', fontWeight: 500 }}>Role</th>
+                <th style={{ padding: 12, textAlign: 'center', fontWeight: 500 }}>Ativo</th>
+                <th style={{ padding: 12, textAlign: 'center', fontWeight: 500 }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {filteredUsers.map((user) => (
-                <tr key={user.id} style={{ borderBottom: '1px solid #eee' }}>
-                  <td style={{ padding: 10 }}>{user.name}</td>
-                  <td style={{ padding: 10 }}>{user.email}</td>
-                  <td style={{ padding: 10 }}>{user.phone || '—'}</td>
-                  <td style={{ padding: 10 }}>{user.role || 'client'}</td>
-                  <td style={{ padding: 10, textAlign: 'center' }}>{user.active ? 'Sim' : 'Não'}</td>
-                  <td style={{ padding: 10, textAlign: 'center' }}>
-                    <button onClick={() => setEditingUser(user)} style={{ marginRight: 10 }}>Editar</button>
-                    <button onClick={() => handleDelete(user.id)} style={{ background: '#d32f2f', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 4 }}>Excluir</button>
+                <tr key={user.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <td style={{ padding: 12 }}>{user.name}</td>
+                  <td style={{ padding: 12 }}>{user.email}</td>
+                  <td style={{ padding: 12 }}>{user.phone || '—'}</td>
+                  <td style={{ padding: 12 }}>
+                    <span style={{ textTransform: 'lowercase', opacity: 0.8 }}>
+                      {user.role || 'client'}
+                    </span>
+                  </td>
+                  <td style={{ padding: 12, textAlign: 'center' }}>
+                    <span style={{
+                      padding: '2px 6px', borderRadius: 4, fontSize: 12, fontWeight: 'bold',
+                      backgroundColor: user.active ? '#c8e6c9' : '#ffcdd2',
+                      color: user.active ? '#2e7d32' : '#c62828'
+                    }}>
+                      {user.active ? 'Sim' : 'Não'}
+                    </span>
+                  </td>
+                  <td style={{ padding: 12, textAlign: 'center' }}>
+                    <button 
+                      onClick={() => setEditingUser(user)} 
+                      style={{ ...getPrimaryStyle(`edit-${user.id}`), padding: '0.4rem 0.8rem', marginRight: 10 }}
+                      onMouseEnter={() => setHoveredButtonId(`edit-${user.id}`)}
+                      onMouseLeave={() => setHoveredButtonId(null)}
+                    >
+                      Editar
+                    </button>
+                    <button 
+                      onClick={() => handleDelete(user.id)} 
+                      style={{ ...getDeleteStyle(`del-${user.id}`), padding: '0.4rem 0.8rem' }}
+                      onMouseEnter={() => setHoveredButtonId(`del-${user.id}`)}
+                      onMouseLeave={() => setHoveredButtonId(null)}
+                    >
+                      Excluir
+                    </button>
                   </td>
                 </tr>
               ))}
