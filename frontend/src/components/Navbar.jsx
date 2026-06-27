@@ -1,15 +1,15 @@
-import { Link, useNavigate, useLocation } from 'react-router-dom' // 👈 Adicionado useLocation
+import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import './Navbar.css' 
 
 export default function Navbar() {
   const navigate = useNavigate()
-  const location = useLocation() // 👈 Instanciando o hook de localização
+  const location = useLocation() 
   
   const [user, setUser] = useState(null)
-  const [token, setToken] = useState(null) // 👈 Transformado em estado para atualizar a tela
+  const [token, setToken] = useState(null) 
 
-  // 🔄 Toda vez que a rota (URL) mudar, revalida o usuário e o token
+  // 🔄 Toda vez que a rota mudar, revalida o usuário e o token
   useEffect(() => {
     const userData = localStorage.getItem('user')
     const tokenData = localStorage.getItem('token')
@@ -25,7 +25,7 @@ export default function Navbar() {
     } else {
       setUser(null)
     }
-  }, [location]) // 👈 Atualiza automaticamente sempre que mudar de página!
+  }, [location]) 
 
   // 🚪 Logout
   function logout() {
@@ -39,8 +39,12 @@ export default function Navbar() {
   const isAdmin = user?.role === 'admin'
   const isLogged = !!token
 
-  // Se não estiver logado (como na página de login), a barra some completamente
-  if (!isLogged) return null
+  // Ajuste as strings abaixo caso sua rota de login tenha outro nome (ex: '/entrar')
+  const isAuthPage = location.pathname === '/' || location.pathname === '/login'
+
+  if (isAuthPage || !isLogged) {
+    return null
+  }
 
   return (
     <footer className="navbar">

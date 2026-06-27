@@ -253,11 +253,6 @@ export default function AdminHorarios() {
         </div>
       )}
 
-      {/* BLOCO 2: CONFIGURAÇÃO DE HORÁRIOS DA SEMANA */}
-      <div style={{ marginBottom: 30, padding: 15, backgroundColor: "#e8f5e9", borderRadius: 8, border: "1px solid #4caf50" }}>
-        <p style={{ margin: 0 }}><strong>ℹ️ Dica:</strong> Configure os horários de funcionamento e intervalos de almoço semanal abaixo.</p>
-      </div>
-
       {businessHours.length === 0 ? (
         <p>Carregando horários...</p>
       ) : (
@@ -272,14 +267,13 @@ export default function AdminHorarios() {
             gap: 15 
           }}>
             {businessHours.map((day) => (
-              /* AJUSTE NO CARD: Mudado para flexbox com altura vertical total */
               <div key={day.day_of_week} style={{
                 padding: 20, 
                 borderRadius: 8, 
                 transition: "all 0.3s",
                 display: "flex",
                 flexDirection: "column",
-                justifyContent: "space-between", // Garante o espaçamento interno distribuído
+                justifyContent: "space-between",
                 backgroundColor: editingDay === day.day_of_week ? "#fff3cd" : "#f5f5f5",
                 border: editingDay === day.day_of_week ? "2px solid #ffc107" : "1px solid #ddd",
               }}>
@@ -311,7 +305,7 @@ export default function AdminHorarios() {
                           </div>
 
                           <div style={{ marginBottom: 15, padding: "10px", backgroundColor: "#fff", borderRadius: 4, border: "1px dashed #ccc" }}>
-                            <span style={{ display: "block", marginBottom: 8, fontSize: 12, fontWeight: "bold", color: "#555" }}>🥪 Intervalo (Almoço)</span>
+                            <span style={{ display: "block", marginBottom: 8, fontSize: 12, fontWeight: "bold", color: "#555" }}>🥪 Intervalo</span>
                             <div style={{ display: "flex", gap: 10 }}>
                               <div style={{ flex: 1 }}>
                                 <label style={{ display: "block", marginBottom: 3, fontSize: 11, color: "#666" }}>Início:</label>
