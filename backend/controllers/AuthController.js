@@ -1,7 +1,6 @@
-// backend/controllers/AuthController.js
-const jwt        = require('jsonwebtoken');
+const jwt = require('jsonwebtoken');
 const { validationResult } = require('express-validator');
-const UserModel  = require('../models/UserModel');
+const UserModel = require('../models/UserModel');
 
 // Função que gera um JWT para o usuário autenticado.
 function generateToken(user) {

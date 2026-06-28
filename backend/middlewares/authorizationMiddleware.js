@@ -1,4 +1,3 @@
-
 /**
  * Middleware: Valida se o usuário é admin OU é o proprietário do recurso
  * Uso: ownerOrAdmin('userId_param_name')

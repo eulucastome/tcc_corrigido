@@ -1,4 +1,3 @@
-// backend/controllers/DashboardController.js
 const AppointmentModel = require('../models/AppointmentModel');
 const BusinessHourModel = require('../models/BusinessHourModel');
 const { getWeekRange, getMonthRange, getYearRange } = require('../utils/dateUtils');

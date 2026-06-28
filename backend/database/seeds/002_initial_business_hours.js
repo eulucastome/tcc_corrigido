@@ -1,4 +1,3 @@
-// backend/database/seeds/002_initial_business_hours.js
 const { v4: uuidv4 } = require('uuid');
 
 exports.seed = async function (knex) {

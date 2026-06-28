@@ -1,4 +1,3 @@
-// backend/models/UserModel.js
 const { v4: uuidv4 } = require('uuid');
 const db = require('../database/connection');
 const bcrypt = require('bcryptjs');

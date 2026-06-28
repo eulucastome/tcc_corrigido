@@ -1,5 +1,3 @@
-// backend/middlewares/errorMiddleware.js
-
 //Função middleware centralizada que formata e responde erros lançados na aplicação
 //Recebe o erro e retorna JSON apropriado com status e mensagem.
 // eslint-disable-next-line no-unused-vars

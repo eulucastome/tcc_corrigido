@@ -1,4 +1,3 @@
-// backend/models/BusinessHourModel.js
 const { v4: uuidv4 } = require('uuid');
 const db = require('../database/connection');
 

@@ -1,4 +1,3 @@
-// backend/database/migrations/002_create_business_hours.js
 // Tabela para armazenar horários de funcionamento por dia da semana
 
 exports.up = async function (knex) {

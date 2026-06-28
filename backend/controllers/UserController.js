@@ -1,4 +1,3 @@
-// backend/controllers/UserController.js
 const { validationResult } = require('express-validator');
 const UserModel = require('../models/UserModel');
 

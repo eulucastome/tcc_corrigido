@@ -1,5 +1,3 @@
-// backend/utils/timeUtils.js
-
 /**
  * Calcula o horário de término somando minutos ao horário de início.
  * @param {string} start  Formato "HH:MM"

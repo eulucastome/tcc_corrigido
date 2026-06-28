@@ -1,4 +1,3 @@
-// backend/controllers/ServiceController.js
 const { validationResult } = require('express-validator');
 const ServiceModel = require('../models/ServiceModel');
 

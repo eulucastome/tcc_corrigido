@@ -1,5 +1,3 @@
-// backend/utils/dateUtils.js
-
 //Função auxiliar que formata números com dois dígitos (ex: 9 → 09)
 function pad(n) { return String(n).padStart(2, '0'); }
 
@@ -12,7 +10,7 @@ function toISO(date) {
  * Retorna início (segunda) e fim (domingo) da semana que contém `dateStr`.
  * Se `dateStr` não for informado usa a data atual.
  */
-//Fnção que retorna o início (segunda) e fim (domingo) da semana para uma data
+//Função que retorna o início (segunda) e fim (domingo) da semana para uma data
 function getWeekRange(dateStr) {
   const ref  = dateStr ? new Date(dateStr + 'T12:00:00') : new Date();
   const day  = ref.getDay(); // 0=dom … 6=sab

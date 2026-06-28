@@ -1,4 +1,3 @@
-// backend/database/knexfile.js
 require('dotenv').config({ path: '../.env' });
 
 module.exports = {

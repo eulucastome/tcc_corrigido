@@ -1,5 +1,3 @@
-// backend/database/migrations/001_create_tables.js
-//
 // Compatível com SQLite (dev) e PostgreSQL (prod).
 // O knex abstrai as diferenças — não use gen_random_uuid() nem
 // tipos ENUM nativos aqui; use string com checagens na camada de modelo.
