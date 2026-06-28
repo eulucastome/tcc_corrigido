@@ -92,7 +92,7 @@ export default function Horarios() {
           return (
             <button
               key={slot.time}
-              // Mantemos desabilitado apenas se available for falso para impedir o clique
+              // Desabilitado apenas se available for falso para impedir o clique
               disabled={!slot.available}
               onClick={() =>
                 navigate('/confirmacao', {

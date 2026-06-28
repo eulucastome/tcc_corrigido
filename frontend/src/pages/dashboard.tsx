@@ -103,9 +103,6 @@ export default function Dashboard() {
     }
   }
 
-  /* ==========================================================
-     ESTILOS PADRONIZADOS COM OS TOKENS DA NAVBAR / PAINEL
-     ========================================================== */
   const panelStyle = {
     marginBottom: 30,
     padding: 20,
@@ -158,7 +155,6 @@ export default function Dashboard() {
       <div style={{ ...panelStyle, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
         <h3 style={{ margin: '0 0 20px 0', fontWeight: 500, fontSize: '1.1rem', width: '100%', textAlign: 'center' }}>Filtros</h3>
 
-        {/* Ajustado justifyContent e flexWrap para organizar perfeitamente os botões de rádio */}
         <div style={{ 
           marginBottom: 15, 
           display: 'flex', 
@@ -176,7 +172,7 @@ export default function Dashboard() {
                 gap: 8, 
                 cursor: 'pointer', 
                 fontSize: '0.9rem',
-                whiteSpace: 'nowrap', // Impede que o texto "Período customizado" quebre em duas linhas
+                whiteSpace: 'nowrap',
                 userSelect: 'none'
               }}
             >

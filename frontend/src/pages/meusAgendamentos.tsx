@@ -86,17 +86,14 @@ export default function MeusAgendamentos() {
     }
   }
 
-  // Função auxiliar para formatar a data de YYYY-MM-DD para DD/MM/YYYY sem problemas de fuso horário
+  // Função auxiliar para formatar a data para DD/MM/YYYY
   const formatDateBR = (dateString: string) => {
     if (!dateString) return '-'
     const parts = dateString.split('-')
-    if (parts.length !== 3) return dateString // Retorna o original se não estiver no padrão esperado
+    if (parts.length !== 3) return dateString // Retorna o original se não estiver no padrão
     return `${parts[2]}/${parts[1]}/${parts[0]}`
   }
 
-  /* ==========================================================
-     ESTILOS PADRONIZADOS COM OS TOKENS DO PAINEL
-     ========================================================== */
   const cardStyle = {
     padding: 20,
     backgroundColor: 'var(--bg)',
@@ -158,7 +155,6 @@ export default function MeusAgendamentos() {
         <p style={{ textAlign: 'center', opacity: 0.7 }}>Nenhum agendamento encontrado.</p>
       ) : null}
 
-      {/* Grade configurada com minmax(280px, 1fr) para ficarem lado a lado e responsivos */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
@@ -178,7 +174,6 @@ export default function MeusAgendamentos() {
               </span>
             </div>
 
-            {/* Aplicada a formatação da data brasileira aqui */}
             <p style={{ margin: 0 }}><strong style={{ opacity: 0.8 }}>Data:</strong> {formatDateBR(a.date)}</p>
             <p style={{ margin: 0 }}><strong style={{ opacity: 0.8 }}>Hora:</strong> {a.start_time}</p>
             <p style={{ margin: 0 }}>
@@ -211,7 +206,7 @@ export default function MeusAgendamentos() {
                   setShowCancelModal(true)
                 }}
                 style={{
-                  marginTop: 'auto', // Faz o botão grudar no final do card caso os serviços tenham tamanhos diferentes
+                  marginTop: 'auto',
                   padding: '0.5rem 1rem',
                   border: '1px solid rgba(198, 40, 40, 0.3)',
                   borderRadius: 4,

@@ -26,15 +26,7 @@ interface Appointment {
   services?: Array<{ id: string; name: string; price: number }>;
 }
 
-const dayNames = [
-  "Domingo",
-  "Segunda",
-  "Terça",
-  "Quarta",
-  "Quinta",
-  "Sexta",
-  "Sábado",
-];
+const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 export default function AdminHorarios() {
   const navigate = useNavigate();
@@ -165,9 +157,6 @@ export default function AdminHorarios() {
     }
   }, [selectedDate]);
 
-  /* ==========================================================
-     ESTILOS PADRONIZADOS
-     ========================================================== */
   const containerPanelStyle = {
     marginBottom: 40,
     padding: 20,
@@ -250,7 +239,6 @@ export default function AdminHorarios() {
           
           <button
             id="admin-new-booking"
-            // ✅ Mudado corretamente para carregar a rota '/agendamento' configurada no seu App.tsx
             onClick={() => navigate('/agendamento', { state: { isAdminBooking: true } })}
             style={{
               ...buttonBase,

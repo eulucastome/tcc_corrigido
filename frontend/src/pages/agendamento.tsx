@@ -35,9 +35,6 @@ export default function Agendamento() {
     return `${hours}h ${mins}min`
   }
 
-  /* ==========================================================
-     ESTILOS PADRONIZADOS COM OS TOKENS DO PAINEL
-     ========================================================== */
   const cardStyle = {
     padding: 20,
     backgroundColor: 'var(--bg)',
@@ -54,7 +51,6 @@ export default function Agendamento() {
     <div style={{ padding: 20, maxWidth: 1200, margin: '0 auto', color: 'var(--text-h)', marginBottom: 60 }}>
       <h1 style={{ fontWeight: 500, marginBottom: '2rem', textAlign: 'center' }}>Escolha o serviço</h1>
 
-      {/* Grade alinhada um ao lado do outro com minmax para responsividade perfeita */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',

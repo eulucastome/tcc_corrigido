@@ -105,9 +105,6 @@ export default function AdminServicos() {
     service.name.toLowerCase().includes(search.toLowerCase())
   )
 
-  /* ==========================================================
-     PADRONIZAÇÃO CSS (Baseado nas variáveis do seu projeto)
-     ========================================================== */
   const inputStyle = {
     padding: '0.5rem 1rem',
     backgroundColor: 'var(--bg)',

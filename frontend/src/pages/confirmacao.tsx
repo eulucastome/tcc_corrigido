@@ -17,7 +17,7 @@ export default function Confirmacao() {
   // Estado auxiliar para gerenciar o efeito visual de hover no botão
   const [isHovered, setIsHovered] = useState(false)
 
-  // Função que formata a data de YYYY-MM-DD para DD/MM/YYYY
+  // Função que formata a data para DD/MM/YYYY
   function formatDate(dateStr: string) {
     if (!dateStr) return ''
     const [year, month, day] = dateStr.split('-')
@@ -54,8 +54,6 @@ export default function Confirmacao() {
       )
 
       console.log('✅ Agendamento criado:', response.data)
-      
-      // MENSAGEM DE SUCESSO ADICIONADA AQUI
       alert('Serviço agendado com sucesso!')
       
       navigate('/meus-agendamentos')
@@ -67,9 +65,6 @@ export default function Confirmacao() {
     }
   }
 
-  /* ==========================================================
-     ESTILOS PADRONIZADOS COM OS TOKENS DO PAINEL
-     ========================================================== */
   const cardStyle = {
     padding: 30,
     backgroundColor: 'var(--bg)',
@@ -77,7 +72,7 @@ export default function Confirmacao() {
     border: '1px solid var(--border)',
     color: 'var(--text-h)',
     maxWidth: 500,
-    margin: '40px auto 0 auto', // Centraliza o card de confirmação na tela
+    margin: '40px auto 0 auto',
     boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)'
   }
 
@@ -107,8 +102,6 @@ export default function Confirmacao() {
     <div style={{ padding: 20, color: 'var(--text-h)' }}>
       <div style={cardStyle}>
         <h2 style={{ marginBottom: '2rem', fontWeight: 500, textAlign: 'center' }}>Confirmar agendamento</h2>
-
-        {/* Informações do Resumo Alinhadas */}
         <div style={{ marginBottom: '2rem', display: 'flex', flexDirection: 'column' }}>
           <div style={infoRowStyle}>
             <span style={{ opacity: 0.7 }}>Serviço:</span>

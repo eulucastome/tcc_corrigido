@@ -85,7 +85,6 @@ export default function AdminUsuarios() {
     }
   }
 
-  // ✅ FILTRO CORRIGIDO: Agora pesquisa por nome, email e faz a normalização de strings para o telefone
   const filteredUsers = users.filter((user) => {
     const searchTerm = search.toLowerCase();
     
@@ -96,7 +95,7 @@ export default function AdminUsuarios() {
     const matchesName = user.name.toLowerCase().includes(searchTerm);
     const matchesEmail = user.email.toLowerCase().includes(searchTerm);
     
-    // Valida o telefone original com o texto digitado OU os dígitos limpos do banco com os dígitos limpos da busca
+    // Valida o telefone original com o texto digitado
     const matchesPhone = 
       (user.phone || '').toLowerCase().includes(searchTerm) || 
       (cleanSearchDigits !== '' && cleanUserPhoneDigits.includes(cleanSearchDigits));
