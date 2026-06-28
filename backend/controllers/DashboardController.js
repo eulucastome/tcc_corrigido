@@ -93,6 +93,36 @@ const DashboardController = {
       });
     } catch (err) { next(err); }
   },
+
+  async updateBusinessHours(req, res, next) {
+    try {
+      // Captura os mesmos nomes de campos enviados pelo frontend
+      const { day_of_week, open_time, close_time, is_open, break_start_time, break_end_time } = req.body;
+
+      if (day_of_week === undefined || day_of_week < 0 || day_of_week > 6) {
+        return res.status(400).json({ message: 'day_of_week deve estar entre 0 e 6.' });
+      }
+
+      // Validação opcional: início do almoço precisa ser menor que o fim
+      if (break_start_time && break_end_time && break_start_time >= break_end_time) {
+        return res.status(400).json({ message: 'O início do intervalo deve ser menor que o fim.' });
+      }
+
+      // Passa as variáveis mapeadas para o Model
+      const updated = await BusinessHourModel.update(day_of_week, { 
+        open_time, 
+        close_time, 
+        is_open,
+        break_start_time: break_start_time || null, 
+        break_end_time: break_end_time || null
+      });
+
+      return res.json({ 
+        message: 'Horários atualizados com sucesso.', 
+        business_hour: updated 
+      });
+    } catch (err) { next(err); }
+  },
 };
 
 module.exports = DashboardController;

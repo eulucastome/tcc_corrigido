@@ -1,241 +1,246 @@
-  const { validationResult } = require('express-validator');
-  const AppointmentModel = require('../models/AppointmentModel');
-  const ServiceModel     = require('../models/ServiceModel');
-  const UserModel        = require('../models/UserModel');
-  const BusinessHourModel = require('../models/BusinessHourModel');
-  const { calcEndTime }  = require('../utils/timeUtils');
+const { validationResult } = require('express-validator');
+const AppointmentModel = require('../models/AppointmentModel');
+const ServiceModel     = require('../models/ServiceModel');
+const UserModel        = require('../models/UserModel');
+const BusinessHourModel = require('../models/BusinessHourModel');
+const { calcEndTime }  = require('../utils/timeUtils');
 
-  // Controlador de agendamentos: gerencia consultas, criação, atualização e cancelamento.
+// Controlador de agendamentos: gerencia consultas, criação, atualização e cancelamento.
 const AppointmentController = {
-    // Função que lista agendamentos, filtrando por data, status ou cliente.
-    async index(req, res, next) {
-      try {
-        const { date, status } = req.query;
-        const clientId = req.user.role === 'client' ? req.user.id : req.query.client_id;
-        const appointments = await AppointmentModel.findAll({ date, status, clientId });
-        return res.json({ appointments });
-      } catch (err) { next(err); }
-    },
+  // Função que lista agendamentos, filtrando por data, status ou cliente.
+  async index(req, res, next) {
+    try {
+      const { date, status } = req.query;
+      const clientId = req.user.role === 'client' ? req.user.id : req.query.client_id;
+      const appointments = await AppointmentModel.findAll({ date, status, clientId });
+      return res.json({ appointments });
+    } catch (err) { next(err); }
+  },
 
-    // Função que calcula horários disponíveis para um dia e serviço.
-    // GET /api/appointments/available?date=YYYY-MM-DD&service_id=...
-    async available(req, res, next) {
-      try {
-        const { date, service_id } = req.query;
-        if (!date) return res.status(400).json({ message: 'Informe a data (date).' });
+  // =========================================================================
+  // FUNÇÃO CORRIGIDA: Lógica de intervalos integrada e livre de ReferenceError
+  // =========================================================================
+  async available(req, res, next) {
+    try {
+      const { date, service_id } = req.query;
+      if (!date) return res.status(400).json({ message: 'Informe a data (date).' });
 
-        let serviceDuration = 30;
-        if (service_id) {
-          const service = await ServiceModel.findById(service_id);
-          if (!service) return res.status(400).json({ message: 'Serviço inválido.' });
-          serviceDuration = service.duration_minutes;
+      let serviceDuration = 30;
+      if (service_id) {
+        const service = await ServiceModel.findById(service_id);
+        if (!service) return res.status(400).json({ message: 'Serviço inválido.' });
+        serviceDuration = service.duration_minutes;
+      }
+
+      // Busca horários de funcionamento para o dia da semana
+      const businessHours = await BusinessHourModel.getHoursForDate(date);
+      if (!businessHours || !businessHours.is_open) {
+        return res.json({ date, slots: [], message: 'Estabelecimento fechado neste dia.' });
+      }
+
+      const occupied = await AppointmentModel.findByDate(date);
+
+      // Parse dos horários de funcionamento
+      const [openH, openM] = businessHours.open_time.split(':').map(Number);
+      const [closeH, closeM] = businessHours.close_time.split(':').map(Number);
+      const openMinutes = openH * 60 + openM;
+      const closeMinutes = closeH * 60 + closeM;
+
+      // Verifica se há intervalo cadastrado para este dia da semana
+      const hasInterval = businessHours.break_start_time && businessHours.break_end_time;
+
+      const slots = [];
+      for (let totalMinutes = openMinutes; totalMinutes < closeMinutes; totalMinutes += 30) {
+        const h = Math.floor(totalMinutes / 60);
+        const m = totalMinutes % 60;
+        const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        const slotEnd = calcEndTime(time, serviceDuration);
+        const [endH, endM] = slotEnd.split(':').map(Number);
+        const slotEndMinutes = endH * 60 + endM;
+
+        // Verifica se conflita com agendamentos existentes
+        const overlaps = occupied.some((o) =>
+          time < o.end_time && slotEnd > o.start_time
+        );
+
+        // Verifica se conflita com bloqueios manuais
+        const isBlocked = occupied.some((o) =>
+          o.status === 'blocked' && time < o.end_time && slotEnd > o.start_time
+        );
+
+        // LÓGICA DE INTERVALO: Verifica se o horário conflita com o almoço/intervalo do dia
+        let isInInterval = false;
+        if (hasInterval) {
+          isInInterval = (time < businessHours.break_end_time && slotEnd > businessHours.break_start_time);
         }
 
-        // Busca horários de funcionamento para o dia da semana
-        const businessHours = await BusinessHourModel.getHoursForDate(date);
-        if (!businessHours || !businessHours.is_open) {
-          return res.json({ date, slots: [], message: 'Estabelecimento fechado neste dia.' });
-        }
+        const isAfterClose = slotEndMinutes > closeMinutes;
 
-        const occupied = await AppointmentModel.findByDate(date);
+        slots.push({
+          time,
+          // Fica indisponível se passar do fechamento, se sobrepor outro agendamento ou se estiver no intervalo
+          available: !isAfterClose && !overlaps && !isInInterval,
+          blocked: isBlocked || isInInterval,
+          service_duration: serviceDuration,
+        });
+      }
 
-        // Parse dos horários de funcionamento
-        const [openH, openM] = businessHours.open_time.split(':').map(Number);
-        const [closeH, closeM] = businessHours.close_time.split(':').map(Number);
-        const openMinutes = openH * 60 + openM;
-        const closeMinutes = closeH * 60 + closeM;
+      return res.json({ date, slots });
+    } catch (err) { next(err); }
+  },
 
-        const slots = [];
-        for (let totalMinutes = openMinutes; totalMinutes < closeMinutes; totalMinutes += 30) {
-          const h = Math.floor(totalMinutes / 60);
-          const m = totalMinutes % 60;
-          const time = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-          const slotEnd = calcEndTime(time, serviceDuration);
-          const [endH, endM] = slotEnd.split(':').map(Number);
-          const slotEndMinutes = endH * 60 + endM;
+  // Função que retorna detalhes de um agendamento específico.
+  async show(req, res, next) {
+    try {
+      const appointment = await AppointmentModel.findById(req.params.id);
+      if (!appointment) return res.status(404).json({ message: 'Agendamento não encontrado.' });
 
-          const overlaps = occupied.some((o) =>
-            time < o.end_time && slotEnd > o.start_time
-          );
+      if (req.user.role === 'client' && appointment.client_id !== req.user.id)
+        return res.status(403).json({ message: 'Acesso negado.' });
 
-          const isBlocked = occupied.some((o) =>
-            o.status === 'blocked' && time < o.end_time && slotEnd > o.start_time
-          );
+      return res.json({ appointment });
+    } catch (err) { next(err); }
+  },
 
-          const isAfterClose = slotEndMinutes > closeMinutes;
-          slots.push({
-            time,
-            available: !isAfterClose && !overlaps,
-            blocked: isBlocked,
-            service_duration: serviceDuration,
-          });
-        }
+  // Função que cria um novo agendamento e verifica conflito de horário.
+  async create(req, res, next) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
 
-        return res.json({ date, slots });
-      } catch (err) { next(err); }
-    },
+      const { date, start_time, service_ids, payment_method, notes } = req.body;
+      const client_id = req.user.role === 'client' ? req.user.id : (req.body.client_id || null);
+      let client_name = req.body.client_name || null;
 
-    // Função que retorna detalhes de um agendamento específico.
-    // GET /api/appointments/:id
-    async show(req, res, next) {
-      try {
-        const appointment = await AppointmentModel.findById(req.params.id);
-        if (!appointment) return res.status(404).json({ message: 'Agendamento não encontrado.' });
+      if (client_id && !client_name) {
+        const user = await UserModel.findById(client_id);
+        if (user) client_name = user.name;
+      }
 
-        if (req.user.role === 'client' && appointment.client_id !== req.user.id)
-          return res.status(403).json({ message: 'Acesso negado.' });
+      const services = await Promise.all(service_ids.map((id) => ServiceModel.findById(id)));
+      if (services.some((s) => !s || !s.active))
+        return res.status(400).json({ message: 'Um ou mais serviços inválidos.' });
 
-        return res.json({ appointment });
-      } catch (err) { next(err); }
-    },
+      const total_price   = services.reduce((sum, s) => sum + parseFloat(s.price), 0);
+      const total_minutes = services.reduce((sum, s) => sum + s.duration_minutes, 0);
+      const end_time      = calcEndTime(start_time, total_minutes);
 
-    // Função que cria um novo agendamento e verifica conflito de horário.
-    // POST /api/appointments
-    async create(req, res, next) {
-      try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+      const conflict = await AppointmentModel.hasConflict(date, start_time, end_time);
+      if (conflict) return res.status(409).json({ message: 'Horário indisponível.' });
 
-        const { date, start_time, service_ids, payment_method, notes } = req.body;
-        const client_id = req.user.role === 'client' ? req.user.id : (req.body.client_id || null);
-        let client_name = req.body.client_name || null;
+      const appointment = await AppointmentModel.create({
+        client_id, client_name, date, start_time, end_time,
+        status: 'scheduled', payment_method, total_price, notes,
+        services: services.map((s) => ({ service_id: s.id, price_at_time: s.price })),
+      });
 
-        // Preenche client_name automaticamente quando há client_id mas não há client_name
-        if (client_id && !client_name) {
-          const user = await UserModel.findById(client_id);
-          if (user) client_name = user.name;
-        }
+      return res.status(201).json({ appointment });
+    } catch (err) { next(err); }
+  },
 
+  // Função que atualiza um agendamento existente (admin).
+  async update(req, res, next) {
+    try {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+
+      const existing = await AppointmentModel.findById(req.params.id);
+      if (!existing) return res.status(404).json({ message: 'Agendamento não encontrado.' });
+
+      const { date, start_time, service_ids, payment_method, payment_status, status, notes } = req.body;
+      let client_name = req.body.client_name;
+      const client_id = req.body.client_id || existing.client_id;
+
+      if (client_id && !client_name) {
+        const user = await UserModel.findById(client_id);
+        if (user) client_name = user.name;
+      }
+
+      let end_time    = existing.end_time;
+      let total_price = existing.total_price;
+      let serviceRows;
+
+      if (service_ids) {
         const services = await Promise.all(service_ids.map((id) => ServiceModel.findById(id)));
-        if (services.some((s) => !s || !s.active))
-          return res.status(400).json({ message: 'Um ou mais serviços inválidos.' });
+        if (services.some((s) => !s)) return res.status(400).json({ message: 'Serviço inválido.' });
 
-        const total_price   = services.reduce((sum, s) => sum + parseFloat(s.price), 0);
-        const total_minutes = services.reduce((sum, s) => sum + s.duration_minutes, 0);
-        const end_time      = calcEndTime(start_time, total_minutes);
+        total_price   = services.reduce((sum, s) => sum + parseFloat(s.price), 0);
+        const minutes = services.reduce((sum, s) => sum + s.duration_minutes, 0);
+        end_time      = calcEndTime(start_time || existing.start_time.slice(0, 5), minutes);
+        serviceRows   = services.map((s) => ({ service_id: s.id, price_at_time: s.price }));
+      }
 
-        const conflict = await AppointmentModel.hasConflict(date, start_time, end_time);
+      const newDate  = date       || existing.date;
+      const newStart = start_time || existing.start_time.slice(0, 5);
+
+      if (date || start_time || service_ids) {
+        const conflict = await AppointmentModel.hasConflict(newDate, newStart, end_time, req.params.id);
         if (conflict) return res.status(409).json({ message: 'Horário indisponível.' });
+      }
 
-        const appointment = await AppointmentModel.create({
-          client_id, client_name, date, start_time, end_time,
-          status: 'scheduled', payment_method, total_price, notes,
-          services: services.map((s) => ({ service_id: s.id, price_at_time: s.price })),
-        });
+      const appointment = await AppointmentModel.update(req.params.id, {
+        client_name, date: newDate, start_time: newStart, end_time,
+        status, payment_method, payment_status, total_price, notes,
+        services: serviceRows,
+      });
 
-        return res.status(201).json({ appointment });
-      } catch (err) { next(err); }
-    },
+      return res.json({ appointment });
+    } catch (err) { next(err); }
+  },
 
-    // Função que atualiza um agendamento existente (admin).
-    // PUT /api/appointments/:id  (admin)
-    async update(req, res, next) {
-      try {
-        const errors = validationResult(req);
-        if (!errors.isEmpty()) return res.status(422).json({ errors: errors.array() });
+  // Função que cancela um agendamento pendente.
+  async cancel(req, res, next) {
+    try {
+      const appointment = await AppointmentModel.findById(req.params.id);
+      if (!appointment) return res.status(404).json({ message: 'Agendamento não encontrado.' });
 
-        const existing = await AppointmentModel.findById(req.params.id);
-        if (!existing) return res.status(404).json({ message: 'Agendamento não encontrado.' });
+      if (req.user.role === 'client' && appointment.client_id !== req.user.id)
+        return res.status(403).json({ message: 'Acesso negado.' });
 
-        const { date, start_time, service_ids, payment_method, payment_status, status, notes } = req.body;
-        let client_name = req.body.client_name;
-        const client_id = req.body.client_id || existing.client_id;
+      if (appointment.status !== 'scheduled')
+        return res.status(400).json({ message: 'Apenas agendamentos pendentes podem ser cancelados.' });
+      
+      let cancellation_reason = '';
+      if (req.body) {
+        cancellation_reason = req.body.cancellation_reason || '';
+      } 
+      
+      if (req.user.role === 'client' && !cancellation_reason.trim()) {
+        return res.status(400).json({ message: "Informe o motivo do cancelamento." });
+      }
 
-        if (client_id && !client_name) {
-          const user = await UserModel.findById(client_id);
-          if (user) client_name = user.name;
-        }
+      await AppointmentModel.update(req.params.id, { status: 'cancelled', cancellation_reason });
+      return res.json({ message: 'Agendamento cancelado.' });
+    } catch (err) { next(err); }
+  },
 
-        let end_time    = existing.end_time;
-        let total_price = existing.total_price;
-        let serviceRows;
+  // Função que cria um bloqueio de horário para evitar agendamento.
+  async block(req, res, next) {
+    try {
+      const { date, start_time, end_time, notes } = req.body;
+      if (!date || !start_time || !end_time)
+        return res.status(400).json({ message: 'Informe date, start_time e end_time.' });
 
-        if (service_ids) {
-          const services = await Promise.all(service_ids.map((id) => ServiceModel.findById(id)));
-          if (services.some((s) => !s)) return res.status(400).json({ message: 'Serviço inválido.' });
+      if (start_time >= end_time)
+        return res.status(400).json({ message: 'start_time deve ser menor que end_time.' });
 
-          total_price   = services.reduce((sum, s) => sum + parseFloat(s.price), 0);
-          const minutes = services.reduce((sum, s) => sum + s.duration_minutes, 0);
-          end_time      = calcEndTime(start_time || existing.start_time.slice(0, 5), minutes);
-          serviceRows   = services.map((s) => ({ service_id: s.id, price_at_time: s.price }));
-        }
+      const conflict = await AppointmentModel.hasConflict(date, start_time, end_time);
+      if (conflict) return res.status(409).json({ message: 'Horário já ocupado.' });
 
-        const newDate  = date       || existing.date;
-        const newStart = start_time || existing.start_time.slice(0, 5);
+      const appointment = await AppointmentModel.create({
+        date, start_time, end_time, status: 'blocked', notes, services: [],
+      });
+      return res.status(201).json({ appointment });
+    } catch (err) { next(err); }
+  },
 
-        if (date || start_time || service_ids) {
-          const conflict = await AppointmentModel.hasConflict(newDate, newStart, end_time, req.params.id);
-          if (conflict) return res.status(409).json({ message: 'Horário indisponível.' });
-        }
+  // Função que deleta um agendamento do sistema.
+  async destroy(req, res, next) {
+    try {
+      await AppointmentModel.delete(req.params.id);
+      return res.status(204).send();
+    } catch (err) { next(err); }
+  },
+};
 
-        const appointment = await AppointmentModel.update(req.params.id, {
-          client_name, date: newDate, start_time: newStart, end_time,
-          status, payment_method, payment_status, total_price, notes,
-          services: serviceRows,
-        });
-
-        return res.json({ appointment });
-      } catch (err) { next(err); }
-    },
-
-    // Função que cancela um agendamento pendente.
-    // PATCH /api/appointments/:id/cancel
-    async cancel(req, res, next) {
-      try {
-        const appointment = await AppointmentModel.findById(req.params.id);
-        if (!appointment) return res.status(404).json({ message: 'Agendamento não encontrado.' });
-
-        if (req.user.role === 'client' && appointment.client_id !== req.user.id)
-          return res.status(403).json({ message: 'Acesso negado.' });
-
-        if (appointment.status !== 'scheduled')
-          return res.status(400).json({ message: 'Apenas agendamentos pendentes podem ser cancelados.' });
-        const { cancellation_reason } = req.body;
-
-          let cancellationReason = ''
-          if (req.body){
-            cancellation_reason = req.body.cancellation_reason || '';
-          } if ( req.user.role === 'client' && !cancellation_reason.trim()) {
-            return res.status(400).json
-            ({message: "Informe o motivo do cancelamento."})
-          }
-
-
-        await AppointmentModel.update(req.params.id, { status: 'cancelled', cancellation_reason });
-        return res.json({ message: 'Agendamento cancelado.' });
-      } catch (err) { next(err); }
-    },
-    
-
-    // Função que cria um bloqueio de horário para evitar agendamento.
-    // POST /api/appointments/block  (admin)
-    async block(req, res, next) {
-      try {
-        const { date, start_time, end_time, notes } = req.body;
-        if (!date || !start_time || !end_time)
-          return res.status(400).json({ message: 'Informe date, start_time e end_time.' });
-
-        if (start_time >= end_time)
-          return res.status(400).json({ message: 'start_time deve ser menor que end_time.' });
-
-        const conflict = await AppointmentModel.hasConflict(date, start_time, end_time);
-        if (conflict) return res.status(409).json({ message: 'Horário já ocupado.' });
-
-        const appointment = await AppointmentModel.create({
-          date, start_time, end_time, status: 'blocked', notes, services: [],
-        });
-        return res.status(201).json({ appointment });
-      } catch (err) { next(err); }
-    },
-
-    // Função que deleta um agendamento do sistema.
-    // DELETE /api/appointments/:id  (admin)
-    async destroy(req, res, next) {
-      try {
-        await AppointmentModel.delete(req.params.id);
-        return res.status(204).send();
-      } catch (err) { next(err); }
-    },
-  };
-
-  module.exports = AppointmentController;
+module.exports = AppointmentController;

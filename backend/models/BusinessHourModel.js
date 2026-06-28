@@ -29,6 +29,20 @@ const BusinessHourModel = {
     const dayOfWeek = date.getDay(); // 0=domingo, 6=sábado
     return this.findByDayOfWeek(dayOfWeek);
   },
+
+  async update(dayOfWeek, { open_time, close_time, is_open, break_start_time, break_end_time }) {
+    await db(TABLE)
+      .where({ day_of_week: dayOfWeek })
+      .update({ 
+        open_time, 
+        close_time, 
+        is_open, 
+        break_start_time, // Salva o início do intervalo
+        break_end_time,   // Salva o fim do intervalo
+        updated_at: db.fn.now() 
+      });
+    return this.findByDayOfWeek(dayOfWeek);
+  },
 };
 
 module.exports = BusinessHourModel;
