@@ -14,7 +14,7 @@ export default function Horarios() {
   const navigate = useNavigate()
   const location = useLocation()
 
-  const service = location.state?.service // ✅ recebe serviço
+  const service = location.state?.service
 
   const [date, setDate] = useState('')
   const [slots, setSlots] = useState<Slot[]>([])

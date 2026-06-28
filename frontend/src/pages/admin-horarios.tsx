@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import api from "../services/api";
 
@@ -36,6 +37,7 @@ const dayNames = [
 ];
 
 export default function AdminHorarios() {
+  const navigate = useNavigate();
   const [businessHours, setBusinessHours] = useState<BusinessHour[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [selectedDate, setSelectedDate] = useState<string>(
@@ -43,7 +45,8 @@ export default function AdminHorarios() {
   );
   const [loading, setLoading] = useState(false);
   const [editingDay, setEditingDay] = useState<number | null>(null);
-  
+  const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
+
   const [tempData, setTempData] = useState<Partial<BusinessHour>>({
     is_open: false,
     open_time: "",
@@ -53,12 +56,9 @@ export default function AdminHorarios() {
     day_of_week: 0,
   });
 
-  const [updatingAppointmentId, setUpdatingAppointmentId] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState<Appointment | null>(null);
   const [cancelReason, setCancelReason] = useState("");
-
-  // Estado para capturar o ID do elemento atualmente em hover
   const [hoveredElementId, setHoveredElementId] = useState<string | null>(null);
 
   async function fetchBusinessHours() {
@@ -166,7 +166,7 @@ export default function AdminHorarios() {
   }, [selectedDate]);
 
   /* ==========================================================
-     PADRONIZAÇÃO CSS (Alinhado com a Navbar e Variáveis)
+     ESTILOS PADRONIZADOS
      ========================================================== */
   const containerPanelStyle = {
     marginBottom: 40,
@@ -235,7 +235,37 @@ export default function AdminHorarios() {
 
       {/* BLOCO 1: AGENDA DO DIA */}
       <div style={containerPanelStyle}>
-        <h2 style={{ margin: "0 0 20px 0", fontWeight: 500, textAlign: "center" }}>📅 Agendamentos do Dia</h2>
+        
+        <div style={{ 
+          display: "flex", 
+          justifyContent: "space-between", 
+          alignItems: "center", 
+          flexWrap: "wrap",
+          gap: "15px",
+          marginBottom: 25,
+          borderBottom: "1px solid var(--border)",
+          paddingBottom: "15px"
+        }}>
+          <h2 style={{ margin: 0, fontWeight: 500 }}>📅 Agendamentos do Dia</h2>
+          
+          <button
+            id="admin-new-booking"
+            // ✅ Mudado corretamente para carregar a rota '/agendamento' configurada no seu App.tsx
+            onClick={() => navigate('/agendamento', { state: { isAdminBooking: true } })}
+            style={{
+              ...buttonBase,
+              backgroundColor: "var(--accent)",
+              color: "#fff",
+              padding: "8px 18px",
+              fontSize: "0.9rem",
+              opacity: hoveredElementId === "admin-new-booking" ? 0.85 : 1,
+            }}
+            onMouseEnter={() => setHoveredElementId("admin-new-booking")}
+            onMouseLeave={() => setHoveredElementId(null)}
+          >
+            ➕ Novo Agendamento
+          </button>
+        </div>
         
         <div style={{ marginBottom: 25, display: "flex", flexDirection: "column", gap: 8 }}>
           <label style={{ fontWeight: "500", fontSize: "0.95rem" }}>Selecione a data:</label>
@@ -322,7 +352,7 @@ export default function AdminHorarios() {
         )}
       </div>
 
-      {/* MODAL DE CANCELAMENTO TOTALMENTE PADRONIZADO */}
+      {/* MODAL DE CANCELAMENTO */}
       {showCancelModal && (
         <div style={{
           position: "fixed", top: 0, bottom: 0, left: 0, right: 0,
@@ -466,7 +496,7 @@ export default function AdminHorarios() {
                           backgroundColor: day.is_open ? "#d4edda" : "#f8d7da", 
                           color: day.is_open ? "#155724" : "#721c24" 
                         }}>
-                          {day.is_open ? "ATIVO" : "FECHADO"}
+                          {day.is_open ? "ABERTO" : "FECHADO"}
                         </span>
                       </p>
 
