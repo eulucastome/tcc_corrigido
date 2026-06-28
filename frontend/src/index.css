@@ -109,6 +109,9 @@ button {
 
 button:hover { opacity: 0.85; }
 button:active { transform: scale(0.98); }
+
+/* ✅ Corrigido o bloco órfão que causava erro de leitura */
+.button-group {
   display: inline-flex;
   border-radius: 4px;
   color: var(--text-h);

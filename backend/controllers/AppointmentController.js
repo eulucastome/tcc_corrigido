@@ -17,9 +17,6 @@ const AppointmentController = {
     } catch (err) { next(err); }
   },
 
-  // =========================================================================
-  // FUNÇÃO ATUALIZADA: Retorna explicitamente se o dia não tem expediente
-  // =========================================================================
   async available(req, res, next) {
     try {
       const { date, service_id } = req.query;
