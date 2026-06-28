@@ -52,6 +52,3 @@ const ServiceController = {
 };
 
 module.exports = ServiceController;
-
-
-//Após TCC, adicionar funcionalidade no frontend, para se tornar visivel o crud de clientes na parte administrativa do sistema. 

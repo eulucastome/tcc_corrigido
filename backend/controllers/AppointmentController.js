@@ -18,7 +18,7 @@ const AppointmentController = {
   },
 
   // =========================================================================
-  // FUNÇÃO CORRIGIDA: Lógica de intervalos integrada e livre de ReferenceError
+  // FUNÇÃO ATUALIZADA: Retorna explicitamente se o dia não tem expediente
   // =========================================================================
   async available(req, res, next) {
     try {
@@ -34,8 +34,15 @@ const AppointmentController = {
 
       // Busca horários de funcionamento para o dia da semana
       const businessHours = await BusinessHourModel.getHoursForDate(date);
+      
+      // Se o dia não estiver aberto ou não houver configuração, retorna 'isOpen: false'
       if (!businessHours || !businessHours.is_open) {
-        return res.json({ date, slots: [], message: 'Estabelecimento fechado neste dia.' });
+        return res.json({ 
+          date, 
+          isOpen: false, 
+          slots: [], 
+          message: 'Sem expediente' 
+        });
       }
 
       const occupied = await AppointmentModel.findByDate(date);
@@ -78,14 +85,13 @@ const AppointmentController = {
 
         slots.push({
           time,
-          // Fica indisponível se passar do fechamento, se sobrepor outro agendamento ou se estiver no intervalo
           available: !isAfterClose && !overlaps && !isInInterval,
           blocked: isBlocked || isInInterval,
           service_duration: serviceDuration,
         });
       }
 
-      return res.json({ date, slots });
+      return res.json({ date, isOpen: true, slots });
     } catch (err) { next(err); }
   },
 
@@ -224,8 +230,26 @@ const AppointmentController = {
       if (start_time >= end_time)
         return res.status(400).json({ message: 'start_time deve ser menor que end_time.' });
 
+      // 1. Busca todos os registros (agendamentos e bloqueios) já existentes para este dia específico
+      const occupied = await AppointmentModel.findByDate(date);
+      
+      // 2. Valida se há algum agendamento ativo ('scheduled') ocupando a exata janela temporal que o admin quer fechar
+      const hasActiveAppointment = occupied.some((appt) => 
+        appt.status === 'scheduled' && 
+        start_time < appt.end_time && 
+        end_time > appt.start_time
+      );
+
+      // 3. Se encontrar um cliente agendado no horário, interrompe a requisição
+      if (hasActiveAppointment) {
+        return res.status(400).json({ 
+          message: 'Não é possível bloquear este período. Já existe um cliente agendado de forma ativa neste horário.' 
+        });
+      }
+
+      // Validação complementar para evitar sobreposição de bloqueios manuais duplicados
       const conflict = await AppointmentModel.hasConflict(date, start_time, end_time);
-      if (conflict) return res.status(409).json({ message: 'Horário já ocupado.' });
+      if (conflict) return res.status(409).json({ message: 'Horário já ocupado por outro bloqueio ou agendamento.' });
 
       const appointment = await AppointmentModel.create({
         date, start_time, end_time, status: 'blocked', notes, services: [],

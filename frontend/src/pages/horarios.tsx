@@ -18,6 +18,7 @@ export default function Horarios() {
 
   const [date, setDate] = useState('')
   const [slots, setSlots] = useState<Slot[]>([])
+  const [isOpen, setIsOpen] = useState<boolean>(true)
 
   // Busca horários livres para a data e serviço selecionados.
   // Função que executa a consulta ao backend sempre que a data ou o serviço mudam.
@@ -26,8 +27,14 @@ export default function Horarios() {
 
     api
       .get(`/api/appointments/available?date=${date}&service_id=${serviceId}`)
-      .then((res) => setSlots(res.data.slots))
-      .catch((err) => console.error(err))
+      .then((res) => {
+        setIsOpen(res.data.isOpen !== false)
+        setSlots(res.data.slots || [])
+      })
+      .catch((err) => {
+        console.error(err)
+        setSlots([])
+      })
   }, [date, serviceId])
 
   return (
@@ -62,66 +69,89 @@ export default function Horarios() {
 
       <h2>Horários disponíveis</h2>
 
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
-        gap: '10px',
-        maxWidth: '400px',
-        width: '100%'
-      }}>
-        {slots.map((slot) => {
-          // LÓGICA DE CORES ESTILIZADA PARA O INTERVALO
-          let backgroundColor = '#fff';
-          let borderColor = '#ddd';
-          let textColor = '#000';
+      {/* 🚀 LÓGICA DE RENDERIZAÇÃO CONDICIONAL */}
+      {!date ? (
+        <p style={{ opacity: 0.6, fontStyle: 'italic' }}>Selecione uma data para ver os horários.</p>
+      ) : !isOpen ? (
+        /* ✅ CASO O DIA ESTEJA FECHADO NO BACKEND */
+        <div style={{
+          textAlign: 'center',
+          padding: '20px',
+          backgroundColor: '#ffebee',
+          color: '#c62828',
+          borderRadius: '4px',
+          border: '1px solid #d32f2f',
+          maxWidth: '400px',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
+          <p style={{ fontSize: '18px', margin: '0 0 5px 0', fontWeight: 'bold' }}>🚫 Sem expediente</p>
+          <p style={{ fontSize: '14px', margin: 0, opacity: 0.8 }}>O estabelecimento não funciona neste dia.</p>
+        </div>
+      ) : slots.length === 0 ? (
+        <p style={{ opacity: 0.6, fontStyle: 'italic' }}>Nenhum horário disponível para esta data.</p>
+      ) : (
+        /* GRID DE HORÁRIOS SE ESTIVER ABERTO */
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
+          gap: '10px',
+          maxWidth: '400px',
+          width: '100%'
+        }}>
+          {slots.map((slot) => {
+            // LÓGICA DE CORES ESTILIZADA PARA O INTERVALO
+            let backgroundColor = '#fff';
+            let borderColor = '#ddd';
+            let textColor = '#000';
 
-          if (!slot.available) {
-            if (slot.blocked) {
-              // 🔴 Se o motivo do bloqueio for o intervalo/almoço
-              backgroundColor = '#ffebee';
-              borderColor = '#d32f2f';
-              textColor = '#c62828';
-            } else {
-              // ⚪ Se já estiver ocupado por outro agendamento
-              backgroundColor = '#f5f5f5';
-              borderColor = '#ddd';
-              textColor = '#999';
-            }
-          }
-
-          return (
-            <button
-              key={slot.time}
-              // Desabilitado apenas se available for falso para impedir o clique
-              disabled={!slot.available}
-              onClick={() =>
-                navigate('/confirmacao', {
-                  state: {
-                    service,
-                    serviceId,
-                    horario: slot.time,
-                    date
-                  }
-                })
+            if (!slot.available) {
+              if (slot.blocked) {
+                // 🔴 Se o motivo do bloqueio for o intervalo/almoço
+                backgroundColor = '#ffebee';
+                borderColor = '#d32f2f';
+                textColor = '#c62828';
+              } else {
+                // ⚪ Se já estiver ocupado por outro agendamento
+                backgroundColor = '#f5f5f5';
+                borderColor = '#ddd';
+                textColor = '#999';
               }
-              style={{
-                padding: '10px',
-                borderRadius: '4px',
-                border: `1px solid ${borderColor}`,
-                backgroundColor: backgroundColor,
-                color: textColor,
-                cursor: !slot.available ? 'not-allowed' : 'pointer',
-                fontSize: '14px',
-                fontWeight: slot.blocked ? 'bold' : 'normal',
-                transition: 'all 0.2s'
-              }}
-              title={slot.blocked ? "Horário de Intervalo" : undefined}
-            >
-              {slot.time}
-            </button>
-          );
-        })}
-      </div>
+            }
+
+            return (
+              <button
+                key={slot.time}
+                disabled={!slot.available}
+                onClick={() =>
+                  navigate('/confirmacao', {
+                    state: {
+                      service,
+                      serviceId,
+                      horario: slot.time,
+                      date
+                    }
+                  })
+                }
+                style={{
+                  padding: '10px',
+                  borderRadius: '4px',
+                  border: `1px solid ${borderColor}`,
+                  backgroundColor: backgroundColor,
+                  color: textColor,
+                  cursor: !slot.available ? 'not-allowed' : 'pointer',
+                  fontSize: '14px',
+                  fontWeight: slot.blocked ? 'bold' : 'normal',
+                  transition: 'all 0.2s'
+                }}
+                title={slot.blocked ? "Horário de Intervalo" : undefined}
+              >
+                {slot.time}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   )
 }
