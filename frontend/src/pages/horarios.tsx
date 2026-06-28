@@ -20,7 +20,7 @@ export default function Horarios() {
   const [slots, setSlots] = useState<Slot[]>([])
 
   // Busca horários livres para a data e serviço selecionados.
-  //Função que executa a consulta ao backend sempre que a data ou o serviço mudam.
+  // Função que executa a consulta ao backend sempre que a data ou o serviço mudam.
   useEffect(() => {
     if (!date || !serviceId) return
 
@@ -66,35 +66,61 @@ export default function Horarios() {
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))',
         gap: '10px',
-        maxWidth: '400px'
+        maxWidth: '400px',
+        width: '100%'
       }}>
-        {slots.map((slot) => (
-          <button
-            key={slot.time}
-            disabled={!slot.available || slot.blocked}
-            onClick={() =>
-              navigate('/confirmacao', {
-                state: {
-                  service,
-                  serviceId,
-                  horario: slot.time,
-                  date
-                }
-              })
+        {slots.map((slot) => {
+          // LÓGICA DE CORES ESTILIZADA PARA O INTERVALO
+          let backgroundColor = '#fff';
+          let borderColor = '#ddd';
+          let textColor = '#000';
+
+          if (!slot.available) {
+            if (slot.blocked) {
+              // 🔴 Se o motivo do bloqueio for o intervalo/almoço
+              backgroundColor = '#ffebee';
+              borderColor = '#d32f2f';
+              textColor = '#c62828';
+            } else {
+              // ⚪ Se já estiver ocupado por outro agendamento
+              backgroundColor = '#f5f5f5';
+              borderColor = '#ddd';
+              textColor = '#999';
             }
-            style={{
-              padding: '10px',
-              borderRadius: '4px',
-              border: '1px solid #ddd',
-              backgroundColor: !slot.available || slot.blocked ? '#f5f5f5' : '#fff',
-              color: !slot.available || slot.blocked ? '#999' : '#000',
-              cursor: !slot.available || slot.blocked ? 'not-allowed' : 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            {slot.time}
-          </button>
-        ))}
+          }
+
+          return (
+            <button
+              key={slot.time}
+              // Mantemos desabilitado apenas se available for falso para impedir o clique
+              disabled={!slot.available}
+              onClick={() =>
+                navigate('/confirmacao', {
+                  state: {
+                    service,
+                    serviceId,
+                    horario: slot.time,
+                    date
+                  }
+                })
+              }
+              style={{
+                padding: '10px',
+                borderRadius: '4px',
+                border: `1px solid ${borderColor}`,
+                backgroundColor: backgroundColor,
+                color: textColor,
+                cursor: !slot.available ? 'not-allowed' : 'pointer',
+                fontSize: '14px',
+                fontWeight: slot.blocked ? 'bold' : 'normal',
+                transition: 'all 0.2s'
+              }}
+              title={slot.blocked ? "Horário de Intervalo" : undefined}
+            >
+              {slot.time}
+            </button>
+          );
+        })}
       </div>
     </div>
   )

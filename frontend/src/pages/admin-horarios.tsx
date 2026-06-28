@@ -478,11 +478,11 @@ export default function AdminHorarios() {
                           
                           {day.break_start_time && day.break_end_time && day.break_start_time !== "00:00:00" && day.break_end_time !== "00:00:00" ? (
                             <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.7 }}>
-                              <strong>Almoço:</strong> {day.break_start_time.slice(0, 5)} às {day.break_end_time.slice(0, 5)}
+                              <strong>Intervalo:</strong> {day.break_start_time.slice(0, 5)} às {day.break_end_time.slice(0, 5)}
                             </p>
                           ) : (
                             <p style={{ margin: 0, fontSize: "0.85rem", opacity: 0.5, fontStyle: "italic" }}>
-                              Direto (Sem intervalo)
+                              Sem intervalo
                             </p>
                           )}
                         </div>
