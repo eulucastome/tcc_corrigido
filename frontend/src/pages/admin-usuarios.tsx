@@ -85,14 +85,25 @@ export default function AdminUsuarios() {
     }
   }
 
-  const filteredUsers = users.filter((user) =>
-    user.name.toLowerCase().includes(search.toLowerCase()) ||
-    user.email.toLowerCase().includes(search.toLowerCase())
-  )
+  // ✅ FILTRO CORRIGIDO: Agora pesquisa por nome, email e faz a normalização de strings para o telefone
+  const filteredUsers = users.filter((user) => {
+    const searchTerm = search.toLowerCase();
+    
+    // Remove tudo o que não for número para comparar telefones puramente por dígitos
+    const cleanSearchDigits = search.replace(/\D/g, '');
+    const cleanUserPhoneDigits = (user.phone || '').replace(/\D/g, '');
 
-  /* ==========================================================
-     PADRONIZAÇÃO CSS (Alinhado com a Navbar e Variáveis)
-     ========================================================== */
+    const matchesName = user.name.toLowerCase().includes(searchTerm);
+    const matchesEmail = user.email.toLowerCase().includes(searchTerm);
+    
+    // Valida o telefone original com o texto digitado OU os dígitos limpos do banco com os dígitos limpos da busca
+    const matchesPhone = 
+      (user.phone || '').toLowerCase().includes(searchTerm) || 
+      (cleanSearchDigits !== '' && cleanUserPhoneDigits.includes(cleanSearchDigits));
+
+    return matchesName || matchesEmail || matchesPhone;
+  });
+
   const containerPanelStyle = {
     padding: 20, 
     backgroundColor: 'var(--bg)', 
